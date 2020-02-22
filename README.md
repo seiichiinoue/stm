@@ -5,13 +5,13 @@
 - download aozorabunko data(git)
 
 ```
-$ git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
+$ cd data/ && git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
 ```
 
 - parse to create cleansed data
 
 ```
-$ cd data/ && python3 parse.py
+$ python3 parse.py
 ```
 
 ## References
