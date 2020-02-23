@@ -8,7 +8,7 @@ def parse(path_to_html):
         soup = BeautifulSoup(html)
     main_text = soup.find("div", class_='main_text')
     if soup.find("h1", class_="title") is None: return 
-    if soup.find("h2", class_="author")is None: return
+    if soup.find("h2", class_="author") is None: return
     if main_text is None: return
 
     title = soup.find("h1", class_="title").text
@@ -24,8 +24,12 @@ def parse(path_to_html):
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
-
+    # for cstm
     with open(save_dir+title+".txt", "w") as f:
+        for sent in sentences:
+            f.write(sent+"\n")
+    # for style2vec
+    with open("./all.txt", "w") as f:
         for sent in sentences:
             f.write(sent+"\n")
     return
