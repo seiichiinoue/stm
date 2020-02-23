@@ -24,13 +24,9 @@ def parse(path_to_html):
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
-    # for cstm
     with open(save_dir+title+".txt", "w") as f:
         for sent in sentences:
-            f.write(sent+"\n")
-    # for style2vec
-    with open("./all.txt", "w") as f:
-        for sent in sentences:
+            if sent == "\n": continue # 改行のみの行は無視
             f.write(sent+"\n")
     return
 

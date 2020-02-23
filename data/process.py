@@ -31,7 +31,7 @@ class Text(object):
         with open(path, "w") as f:
             for t in wakatied:
                 f.write(t+'\n')
-        with open("./all.txt", "w") as f:
+        with open("./all.txt", mode='a') as f:
             for t in wakatied:
                 f.write(t+"\n")
         return None
@@ -57,6 +57,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     authors = os.listdir(args.tar_path)
     for author in authors:
+        if author.endswith(".txt"): continue
         if not os.path.exists(args.save_path+author):
             os.mkdir(args.save_path+author)
         filelist = os.listdir(args.tar_path+author)
