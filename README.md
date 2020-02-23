@@ -1,17 +1,28 @@
 # Modeling Text through Gaussian Process using Style-sensitive Word Vectors
 
-## Corpus
+## Prepare
+
+### Corpus
 
 - download aozorabunko data(git)
 
 ```
-$ cd data/ && git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
+$ cd data/
+$ git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
 ```
 
 - parse to create cleansed data
 
 ```
 $ python3 parse.py && python3 process.py
+```
+
+### Train Style2Vec
+
+```
+$ cd style2vec/
+$ g++ style2vec.cpp -o style2vec -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
+$ ./style2vec -train ../data/all.txt -output ../data/vec.bin
 ```
 
 ## References
