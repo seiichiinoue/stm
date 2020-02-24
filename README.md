@@ -1,5 +1,15 @@
 # Modeling Text through Gaussian Process using Style-sensitive Word Vectors
 
+## Environment
+
+- Using Docker (docker must installed to local environment)
+
+```
+$ docker build -t wvtmenv .
+$ docker run -it -v [local path]:/workspace/ wvtmenv
+$ docker exec -it wvtm /bin/bash
+```
+
 ## Prepare
 
 ### Corpus
