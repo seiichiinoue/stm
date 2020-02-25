@@ -21,7 +21,7 @@ $ cd data/
 $ git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
 ```
 
-- parse to create cleansed data
+- parse to create cleansed data and process (wakati-gaki) cleansed data
 
 ```
 $ python3 parse.py && python3 process.py
