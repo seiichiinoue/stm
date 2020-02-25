@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <malloc/malloc.h>
+// # include <malloc/malloc.h>      for macos
+#include <malloc.h>
 #include <vector>
 #include <string>
+#include <cstdlib>
 #include <iostream>
 #include <ostream>
 using namespace std;
@@ -12,6 +14,14 @@ using namespace std;
 const long long max_size = 2000; // max length of strings
 const long long N = 15;          // number of closest words that will be shown
 const long long max_w = 50;      // max length of vocabulary entries
+
+
+void string_to_wstring(const std::string &src, std::wstring &dest) {
+	wchar_t *wcs = new wchar_t[src.length() + 1];
+	mbstowcs(wcs, src.c_str(), src.length() + 1);
+	dest = wcs;
+	delete [] wcs;
+}
 
 int ArgPos(char *str, int argc, char **argv) {
     int a;
@@ -103,15 +113,26 @@ int main(int argc, char **argv) {
     //     printf("%s\n", &vocab[b * max_w]);
     // }
     
+    /* language code settings */
+    setlocale(LC_CTYPE, "ja_JP.UTF-8");
+    ios_base::sync_with_stdio(false);
+    locale default_loc("ja_JP.UTF-8");
+    locale::global(default_loc);
+    locale ctype_default(locale::classic(), default_loc, locale::ctype);
+    wcout.imbue(ctype_default);
+    wcin.imbue(ctype_default);
+
     /* convert array to vector */
-    vector<string> vocab_list(words);
+    vector<wstring> vocab_list(words);
     vector<vector<double>> word_vec(words, vector<double>(size, 0));
     vector<vector<double>> semantic_vec(words, vector<double>(sized, 0));
     vector<vector<double>> stylistic_vec(words, vector<double>(sizes, 0));
     for (b=0; b<words; ++b) {
         // words
         string s = &vocab[b * max_w];
-        vocab_list[b] = s;
+        wstring ws;
+        string_to_wstring(s, ws);
+        vocab_list[b] = ws;
         // word vector
         for (a=0; a<size; ++a) {
             double tmp = M[a+b+size];
@@ -125,5 +146,8 @@ int main(int argc, char **argv) {
             }
         }
     }
-    cout << size << " " << sizes << " " << sized << endl;
+    
+    // wcout << vocab_list[101] << endl;
+    cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
+    return 0;
 }
