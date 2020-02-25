@@ -17,17 +17,19 @@ using namespace std;
 namespace cstm {
     class CSTM {
     public:
-        int **_n_k;                 // 文書ごとの単語の出現頻度
-        int *_sum_n_k;              // 文書ごとの単語の出現頻度の総和
+        int **_n_k;                     // 文書ごとの単語の出現頻度
+        int *_sum_n_k;                  // 文書ごとの単語の出現頻度の総和
         int *_word_count;
         double *_Zi;
-        double *_g0;                // 単語のデフォルト確率
-        double **_word_vectors;     // 単語ベクトル
-        double **_doc_vectors;      // 文書ベクトル
+        double *_g0;                    // 単語のデフォルト確率
+        double **_word_vectors;         // 単語ベクトル
+        double **_semantic_vectors;     // 意味ベクトル; style2vecで事前学習
+        double **_stylistic_vectors;    // スタイルベクトル; style2vecで事前学習
+        double **_doc_vectors;          // 文書ベクトル
         int _ndim_d;
         int _num_documents;
         int _vocabulary_size;
-        int _sum_word_frequency;    // 全単語の出現回の総和
+        int _sum_word_frequency;        // 全単語の出現回の総和
         int _ignore_word_count;
         double _sigma_u;
         double _sigma_phi;
@@ -51,6 +53,8 @@ namespace cstm {
             _gamma_alpha_b = GAMMA_ALPHA_B;
             _g0 = NULL;
             _word_vectors = NULL;
+            _semantic_vectors = NULL;
+            _stylistic_vectors = NULL;
             _doc_vectors = NULL;
             _n_k = NULL;
             _word_count = NULL;
@@ -76,14 +80,18 @@ namespace cstm {
             _tmp_vec = generate_vector();
             _g0 = new double[vocabulary_size];
             _word_vectors = new double*[vocabulary_size];
+            _semantic_vectors = new double*[vocabulary_size];
+            _stylistic_vectors = new double*[vocabulary_size];
             _doc_vectors = new double*[num_documents];
             _n_k = new int*[num_documents];
             _sum_n_k = new int[num_documents];
             _Zi = new double[num_documents];
             _log_likelihood_first_term = new double[num_documents];
+            // word vectors
             for (id word_id=0; word_id<vocabulary_size; ++word_id) {
                 _word_vectors[word_id] = generate_vector();
             }
+            // document vectors
             for (int doc_id=0; doc_id<num_documents; ++ doc_id) {
                 _doc_vectors[doc_id] = generate_vector();
                 _n_k[doc_id] = new int[vocabulary_size];
