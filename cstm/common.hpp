@@ -7,7 +7,7 @@
 #define SIGMA_PHI 0.02          // 単語ベクトルのランダムウォーク幅
 #define SIGMA_ALPHA 0.2         // a0のランダムウォーク幅
 #define GAMMA_ALPHA_A 5         // a0のガンマ事前分布のハイパーパラメータ
-#define GAMMA_ALPHA_B 1         // a0がガンマ事前分のはハイパーパラメータ
+#define GAMMA_ALPHA_B 1         // a0のガンマ事前分布のハイパーパラメータ
 using id = size_t;
 
 namespace cstm {
