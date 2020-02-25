@@ -11,6 +11,10 @@
 #include <algorithm>
 #include <iterator>
 #include <cstdlib>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <dirent.h>
 #include <string>
 #include <set>
@@ -78,6 +82,8 @@ class CSTMTrainer {
 public:
     CSTM *_cstm;
     Vocab *_vocab;
+    unordered_map<id, vector<vector<double>>> _id_to_semantic_vec;   // style2vec
+    unordered_map<id, vector<vector<double>>> _id_to_stylistic_vec;  // style2vec
     vector<vector<vector<id>>> _dataset;
     vector<unordered_set<id>> _word_ids_in_doc;
     vector<int> _sum_word_frequency;    // word frequency per document
@@ -235,6 +241,18 @@ public:
             }
             dataset.push_back(word_ids);
         }
+    }
+    void init_semantic_vector(wstring word, vector<double> vec) {
+        id word_id = _vocab->get_word_id(word);
+        // _id_to_semantic_vec[word_id] = vec;
+        double* ptr = &vec[0];
+        _cstm->_semantic_vectors[word_id] = ptr;
+    }
+    void init_stylistic_vector(wstring word, vector<double> vec) {
+        id word_id = _vocab->get_word_id(word);
+        // _id_to_stylistic_vec[word_id] = vec;
+        double* ptr = &vec[0];
+        _cstm->_stylistic_vectors[word_id] = ptr;
     }
     bool is_doc_contain_word(int doc_id, id word_id) {
         unordered_set<int> &set = _docs_containing_word[word_id];
@@ -523,6 +541,113 @@ public:
     }
 };
 
+void string_to_wstring(const std::string &src, std::wstring &dest) {
+	wchar_t *wcs = new wchar_t[src.length() + 1];
+	mbstowcs(wcs, src.c_str(), src.length() + 1);
+	dest = wcs;
+	delete [] wcs;
+}
+
+int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1, vector<vector<double>> &vec2) {
+    long long max_size = 2000, N = 15, max_w = 50;
+    FILE *f;
+    char st1[max_size];
+    char *bestw[N];
+    char st[100][max_size];
+    float dist, len, len1, len2, bestd[N], vec[max_size];
+    long long words, size, a, b, c, d, cn, bi[100];
+    long long sizes = -1, sized;
+    float *M, *M1, *M2;
+    char *vocab, *file_name[max_size];
+    f = fopen(fname.c_str(), "rb");
+    if (f == NULL) {
+        printf("Input file not found\n");
+        return -1;
+    }
+    fscanf(f, "%lld", &words);
+    fscanf(f, "%lld", &size);
+
+    /* size of stylistic (sizes) and syntactic/semantic (sized) vector */
+    if (sizes == -1) {
+        sizes = size / 2;
+    }
+    sized = size - sizes;
+
+    vocab = (char *)malloc((long long)words * max_w * sizeof(char));
+    for (a = 0; a < N; a++)
+        bestw[a] = (char *)malloc(max_size * sizeof(char));
+    M = (float *)malloc((long long)words * (long long)size * sizeof(float));
+    M1 = (float *)malloc((long long)words * (long long)sizes * sizeof(float)); //stylistic
+    M2 = (float *)malloc((long long)words * (long long)sized * sizeof(float)); //syntactic/semantic
+    if (M == NULL) {
+        printf("Cannot allocate memory: %lld MB    %lld  %lld\n", (long long)words * size * sizeof(float) / 1048576, words, size);
+        return -1;
+    }
+    for (b = 0; b < words; b++) {
+        a = 0;
+        while (1) {
+            vocab[b * max_w + a] = fgetc(f);
+            if (feof(f) || (vocab[b * max_w + a] == ' '))
+                break;
+            if ((a < max_w) && (vocab[b * max_w + a] != '\n'))
+                a++;
+        }
+        vocab[b * max_w + a] = 0;
+        for (a = 0; a < size; a++) {
+            fread(&M[a + b * size], sizeof(float), 1, f);
+            if (a < sizes)
+                M1[a + b * sizes] = M[a + b * size];
+            else
+                M2[(a - sizes) + b * sized] = M[a + b * size];
+        }
+    }
+    fclose(f);
+    printf("vocab size: %lld\n", words);
+    // for (b=0; b<words; ++b) {
+    //     printf("%s\n", &vocab[b * max_w]);
+    // }
+    
+    /* language code settings */
+    setlocale(LC_CTYPE, "ja_JP.UTF-8");
+    ios_base::sync_with_stdio(false);
+    locale default_loc("ja_JP.UTF-8");
+    locale::global(default_loc);
+    locale ctype_default(locale::classic(), default_loc, locale::ctype);
+    wcout.imbue(ctype_default);
+    wcin.imbue(ctype_default);
+
+    /* convert array to vector */
+    vector<wstring> vocab_list(words);
+    vector<vector<double>> word_vec(words, vector<double>(size, 0));
+    vector<vector<double>> semantic_vec(words, vector<double>(sized, 0));
+    vector<vector<double>> stylistic_vec(words, vector<double>(sizes, 0));
+    for (b=0; b<words; ++b) {
+        // words
+        string s = &vocab[b * max_w];
+        wstring ws;
+        string_to_wstring(s, ws);
+        vocab_list[b] = ws;
+        // word vector
+        for (a=0; a<size; ++a) {
+            double tmp = M[a+b+size];
+            word_vec[b][a] = tmp;
+            if (a < sizes) {
+                double tmp1 = M1[a + b * sizes];
+                stylistic_vec[b][a] = tmp1;
+            } else {
+                double tmp2 = M2[(a - sizes) + b * sized];
+                semantic_vec[b][a-sizes] = tmp2;
+            }
+        }
+    }
+    vec0 = vocab_list;
+    vec1 = semantic_vec;
+    vec2 = stylistic_vec;
+    // wcout << vocab_list[101] << endl;
+    // cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
+    return 0;
+}
+
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
@@ -530,10 +655,11 @@ DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
 DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
 DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
-DEFINE_int32(ignore_word_count, 0, "number of ignore word");
+DEFINE_int32(ignore_word_count, 1, "number of ignore word");
 DEFINE_int32(epoch, 100, "num of epoch");
 DEFINE_string(data_path, "./data/train/", "directory input data located");
 DEFINE_string(model_path, "./model/cstm.model", "saveplace of model");
+DEFINE_string(vec_path, "./data/vec.bin", "saveplace of pre-trained word vector");
 
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(*argv);
@@ -562,6 +688,16 @@ int main(int argc, char *argv[]) {
         }
         entry = readdir(dp);
     }
+    // read pre-trained vectors
+    vector<wstring> vocab;
+    vector<vector<double>> semantic_vec, stylistic_vec;
+    load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
+    for (int i=0; i<vocab.size(); ++i) {
+        trainer.init_semantic_vector(vocab[i], semantic_vec[i]);
+        trainer.init_stylistic_vector(vocab[i], stylistic_vec[i]);
+    }
+    assert(trainer._ndim_d == semantic_vec[0].size());
+    assert(trainer._ndim_d == stylistic_vec[0].size());
     // prepare model
     trainer.prepare();
     // summary
