@@ -26,12 +26,15 @@ namespace cstm {
         double **_semantic_vectors;     // 意味ベクトル; style2vecで事前学習
         double **_stylistic_vectors;    // スタイルベクトル; style2vecで事前学習
         double **_doc_vectors;          // 文書ベクトル
+        double **_doc_vectors_in_semantic_space;    // 意味空間の文書ベクトル
+        double **_doc_vectors_in_stylistic_space;   // スタイル空間の文書ベクトル
         int _ndim_d;
         int _num_documents;
         int _vocabulary_size;
         int _sum_word_frequency;        // 全単語の出現回の総和
         int _ignore_word_count;
-        double _sigma_u;
+        double _sigma_u;                // 意味空間上の文書ベクトルのランダムウォーク幅
+        double _sigma_mu;               // スタイル空間上の文べベクトルのランダムウォーク幅
         double _sigma_phi;
         double _sigma_alpha0;
         double _gamma_alpha_a;
@@ -42,11 +45,14 @@ namespace cstm {
         normal_distribution<double> _standard_normal_distribution;
         normal_distribution<double> _noise_word;
         normal_distribution<double> _noise_doc;
+        normal_distribution<double> _noise_doc_in_semantic_space;
+        normal_distribution<double> _noise_doc_in_stylistic_space;
         normal_distribution<double> _noise_alpha0;
 
         CSTM() {
             _ndim_d = NDIM_D;
             _sigma_u = SIGMA_U;
+            _sigma_mu = SIGMA_MU;
             _sigma_phi = SIGMA_PHI;
             _sigma_alpha0 = SIGMA_ALPHA;
             _gamma_alpha_a = GAMMA_ALPHA_A;
@@ -83,6 +89,8 @@ namespace cstm {
             _semantic_vectors = new double*[vocabulary_size];
             _stylistic_vectors = new double*[vocabulary_size];
             _doc_vectors = new double*[num_documents];
+            _doc_vectors_in_semantic_space = new double*[num_documents];
+            _doc_vectors_in_stylistic_space = new double*[num_documents];
             _n_k = new int*[num_documents];
             _sum_n_k = new int[num_documents];
             _Zi = new double[num_documents];
@@ -94,6 +102,8 @@ namespace cstm {
             // document vectors
             for (int doc_id=0; doc_id<num_documents; ++ doc_id) {
                 _doc_vectors[doc_id] = generate_vector();
+                _doc_vectors_in_semantic_space[doc_id] = generate_vector();
+                _doc_vectors_in_stylistic_space[doc_id] = generate_vector();
                 _n_k[doc_id] = new int[vocabulary_size];
                 _Zi[doc_id] = 0;
                 for (id word_id=0; word_id<vocabulary_size; ++word_id) {
@@ -125,6 +135,7 @@ namespace cstm {
                 sum_word_frequency_check += sum;
             }
             assert(sum_word_frequency_check == _sum_word_frequency);
+            // calculate log likelihood first term
             for (int doc_id=0; doc_id<_num_documents; ++doc_id) {
                 double log_pw = 0;
                 for (int i=2; i<=_sum_n_k[doc_id]; ++i) {
@@ -140,6 +151,8 @@ namespace cstm {
             }
             _noise_word = normal_distribution<double>(0, _sigma_phi);
             _noise_doc = normal_distribution<double>(0, _sigma_u);
+            _noise_doc_in_semantic_space = normal_distribution<double>(0, _sigma_u);
+            _noise_doc_in_stylistic_space = normal_distribution<double>(0, _sigma_mu);
             _noise_alpha0 = normal_distribution<double>(0, _sigma_alpha0);
         }
         void add_word(id word_id, int doc_id) {
@@ -152,6 +165,12 @@ namespace cstm {
         }
         double generate_noise_doc() {
             return _noise_doc(sampler::minstd);
+        }
+        double generate_noise_doc_in_semantic_space() {
+            return _noise_doc_in_semantic_space(sampler::minstd);
+        }
+        double generate_noise_doc_in_stylistic_space() {
+            return _noise_doc_in_stylistic_space(sampler::minstd);
         }
         double generate_noise_word() {
             return _noise_word(sampler::minstd);
@@ -175,10 +194,23 @@ namespace cstm {
             }
             return _tmp_vec;
         }
+        double *draw_doc_vector_in_semantic_space(double *old_vec) {
+            for (int i=0; i<_ndim_d; ++i) {
+                _tmp_vec[i] = old_vec[i] + generate_noise_doc_in_semantic_space();
+            }
+            return _tmp_vec;
+        }
+        double *draw_doc_vector_in_stylistic_space(double *old_vec) {
+            for (int i=0; i<_ndim_d; ++i) {
+                _tmp_vec[i] = old_vec[i] + generate_noise_doc_in_stylistic_space();
+            }
+            return _tmp_vec;
+        }
         double draw_alpha0(double old_alpha0) {
             double z = _noise_alpha0(sampler::minstd);
             return old_alpha0 * cstm::exp(z);
         }
+        // for updating Zd = \Sigma_k \alpha_d_k (文書dの単語k)
         double sum_alpha_word_given_doc(int doc_id) {
             double sum = 0;
             for (id word_id=0; word_id<_vocabulary_size; ++word_id) {
@@ -187,15 +219,27 @@ namespace cstm {
             return sum;
         }
         double compute_alpha_word_given_doc(id word_id, int doc_id) {
-            double *word_vec = _word_vectors[word_id];
-            double *doc_vec = _doc_vectors[doc_id];
+            // double *word_vec = _word_vectors[word_id];
+            double *semantic_vec = _semantic_vectors[word_id];
+            double *stylistic_vec = _stylistic_vectors[word_id];
+            // double *doc_vec = _doc_vectors[doc_id];
+            double *doc_vec_in_semantic_space = _doc_vectors_in_semantic_space[doc_id];
+            double *doc_vec_in_stylistic_space = _doc_vectors_in_stylistic_space[doc_id];
             double g0 = get_g0_of_word(word_id);
-            return _compute_alpha_word(word_vec, doc_vec, g0);
+            // return _compute_alpha_word(word_vec, doc_vec, g0);
+            return _compute_alpha_word(semantic_vec, stylistic_vec, doc_vec_in_semantic_space, doc_vec_in_stylistic_space, g0);
         }
         // compute alpha: \alpha_{d, k} = \alpha_0 * G_0(w_k) * \exp(\phi(w_k)^T * u_d)
         double _compute_alpha_word(double *word_vec, double *doc_vec, double g0) {
             double f = cstm::inner(word_vec, doc_vec, _ndim_d);   // inner product
             double alpha = _alpha0 * g0 * cstm::exp(f);
+            return alpha;
+        }
+        // tstm; compute alpha: \alpha_{d, k} = \alpha_0 * G_0(w_k) * \exp( \phi(w_k)^T u_d ) * \exp( \zeta(w_k)^T mu_d )
+        double _compute_alpha_word(double *semantic_vec, double *stylistic_vec, double *doc_vec_in_semantic_space, double *doc_vec_in_stylistic_space, double g0) {
+            double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
+            double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
+            double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
             return alpha;
         }
         // compute probability: \p_d (w | \alpha_d, n_d)
@@ -302,11 +346,27 @@ namespace cstm {
         int get_sum_word_frequency_of_doc(int doc_id) {
             return _sum_n_k[doc_id];
         }
+        double *get_doc_vector_in_semantic_space(int doc_id) {
+            return _doc_vectors_in_semantic_space[doc_id];
+        }
+        double *get_doc_vector_in_stylistic_space(int doc_id) {
+            return _doc_vectors_in_stylistic_space[doc_id];
+        }
         double *get_doc_vector(int doc_id) {
             return _doc_vectors[doc_id];
         }
         double *get_word_vector(id word_id) {
             double *vec = _word_vectors[word_id];
+            assert(vec != NULL);
+            return vec;
+        }
+        double *get_semantic_vector(id word_id) {
+            double *vec = _semantic_vectors[word_id];
+            assert(vec != NULL);
+            return vec;
+        }
+        double *get_stylistic_vector(id word_id) {
+            double *vec = _stylistic_vectors[word_id];
             assert(vec != NULL);
             return vec;
         }
@@ -331,6 +391,9 @@ namespace cstm {
         }
         void set_sigma_u(double sigma_u) {
             _sigma_u = sigma_u;
+        }
+        void set_sigma_mu(double sigma_mu) {
+            _sigma_mu = sigma_mu;
         }
         void set_sigma_phi(double sigma_phi) {
             _sigma_phi = sigma_phi;
@@ -396,6 +459,7 @@ template<class Archive>
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
         archive & cstm._sigma_u;
+        archive & cstm._sigma_mu;
         archive & cstm._sigma_phi;
         archive & cstm._sigma_alpha0;
         archive & cstm._alpha0;
@@ -409,14 +473,44 @@ template<class Archive>
                 archive & cstm._n_k[doc_id][word_id];
             }
         }
+        // document vectors
         for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
             double *vec = cstm._doc_vectors[doc_id];
             for (int i=0; i<cstm._ndim_d; ++i) {
                 archive & vec[i];
             }
         }
+        // document vectors in semantic space
+        for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+            double *vec = cstm._doc_vectors_in_semantic_space[doc_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // document vectors in stylistic space
+        for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+            double *vec = cstm._doc_vectors_in_stylistic_space[doc_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // word vectors
         for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
             double *vec = cstm._word_vectors[word_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // semantic vectors
+        for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+            double *vec = cstm._semantic_vectors[word_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // stylistic vectors
+        for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+            double *vec = cstm._stylistic_vectors[word_id];
             for (int i=0; i<cstm._ndim_d; ++i) {
                 archive & vec[i];
             }
@@ -435,6 +529,7 @@ template<class Archive>
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
         archive & cstm._sigma_u;
+        archive & cstm._sigma_mu;
         archive & cstm._sigma_phi;
         archive & cstm._sigma_alpha0;
         archive & cstm._alpha0;
@@ -478,14 +573,44 @@ template<class Archive>
                 archive & cstm._n_k[doc_id][word_id];
             }
         }
+        // document vectors
         for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
             double *vec = cstm._doc_vectors[doc_id];
             for (int i=0; i<cstm._ndim_d; ++i) {
                 archive & vec[i];
             }
         }
+        // document vectors in semantic space
+        for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+            double *vec = cstm._doc_vectors_in_semantic_space[doc_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // document vectors in stylistic space
+        for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+            double *vec = cstm._doc_vectors_in_stylistic_space[doc_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // word vectors
         for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
             double *vec = cstm._word_vectors[word_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // semantic vectors
+        for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+            double *vec = cstm._semantic_vectors[word_id];
+            for (int i=0; i<cstm._ndim_d; ++i) {
+                archive & vec[i];
+            }
+        }
+        // stylistic vectors
+        for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+            double *vec = cstm._stylistic_vectors[word_id];
             for (int i=0; i<cstm._ndim_d; ++i) {
                 archive & vec[i];
             }
