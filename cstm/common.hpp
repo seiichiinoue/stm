@@ -4,6 +4,7 @@
 #include "fmath.hpp"
 #define NDIM_D 2                // 文書,単語ベクトルの次元数
 #define SIGMA_U 0.01            // 文書ベクトののランダムウォーク幅
+#define SIGMA_MU 0.01
 #define SIGMA_PHI 0.02          // 単語ベクトルのランダムウォーク幅
 #define SIGMA_ALPHA 0.2         // a0のランダムウォーク幅
 #define GAMMA_ALPHA_A 5         // a0のガンマ事前分布のハイパーパラメータ
