@@ -5,9 +5,9 @@
 - Using Docker (docker must installed to local environment)
 
 ```
-$ docker build -t wvtmenv .
-$ docker run -it -v [local path]:/workspace/ wvtmenv
-$ docker exec -it wvtm /bin/bash
+$ docker build -t tstmenv .
+$ docker run -it -v [local path]:/workspace/ tstmenv
+$ docker exec -it tstm /bin/bash
 ```
 
 ## Prepare
@@ -32,19 +32,20 @@ $ python3 parse.py && python3 process.py
 ```
 $ cd style2vec/
 $ g++ style2vec.cpp -o style2vec -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
-$ ./style2vec -train ../data/all.txt -output ../data/vec.bin
+$ ./style2vec -train ../data/all.txt -output ../bin/vec.bin
 ```
 
 - My settings
 
 ```
-SETTINGS={size:600, size-s:300, train:../data/all.txt, save-vocab:, read-vocab:, debug:2, binary:1, cbow:1, alpha:0.050000, output:../data/vec.bin, iwindow-threshold:5, fix-threshold:1, sample:0.001000, negative:5, threads:12, iter:10, min-count:5, classes:0}
+SETTINGS={size:600, size-s:300, train:../data/all.txt, save-vocab:, read-vocab:, debug:2, binary:1, cbow:1, alpha:0.050000, output:../bin/vec.bin, iwindow-threshold:5, fix-threshold:1, sample:0.001000, negative:5, threads:12, iter:10, min-count:5, classes:0}
 Starting training using file ../data/all.txt
 Vocab size: 202498
 Words in train file: 304492532
 ```
 
 ## Train CSTM
+
 
 
 ## References
