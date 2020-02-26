@@ -105,20 +105,20 @@ public:
 
     // stat
     // times of acceptance 
-    int _num_acceptance_doc;
+    // int _num_acceptance_doc;
     int _num_acceptance_doc_in_semantic_space;
     int _num_acceptance_doc_in_stylistic_space;
-    int _num_acceptance_word;
+    // int _num_acceptance_word;
     int _num_acceptance_alpha0;
     // times of rejection 
-    int _num_rejection_doc;
+    // int _num_rejection_doc;
     int _num_rejection_doc_in_semantic_space;
     int _num_rejection_doc_in_stylistic_space;
-    int _num_rejection_word;
+    // int _num_rejection_word;
     int _num_rejection_alpha0;
     // times of sampling
-    int _num_word_vec_sampled;
-    int _num_doc_vec_sampled;
+    // int _num_word_vec_sampled;
+    // int _num_doc_vec_sampled;
     int _num_doc_vec_in_semantic_space_sampled;
     int _num_doc_vec_in_stylistic_space_sampled;
     
@@ -159,14 +159,14 @@ public:
     }
 
     void reset_statistics() {
-        int _num_acceptance_doc = 0;    
-        int _num_acceptance_word = 0;
+        // int _num_acceptance_doc = 0;    
+        // int _num_acceptance_word = 0;
         int _num_acceptance_alpha0 = 0;
-        int _num_rejection_doc = 0;
-        int _num_rejection_word = 0;
+        // int _num_rejection_doc = 0;
+        // int _num_rejection_word = 0;
         int _num_rejection_alpha0 = 0;
-        int _num_word_vec_sampled = 0;
-        int _num_doc_vec_sampled = 0;
+        // int _num_word_vec_sampled = 0;
+        // int _num_doc_vec_sampled = 0;
         int _num_doc_vec_in_semantic_space_sampled = 0;
         int _num_doc_vec_in_stylistic_space_sampled = 0;
     }
@@ -291,12 +291,12 @@ public:
     int get_sum_word_frequency() {
         return std::accumulate(_sum_word_frequency.begin(), _sum_word_frequency.end(), 0);
     }
-    int get_num_word_vec_sampled() {
-        return _num_word_vec_sampled;
-    }
-    int get_num_doc_vec_sampled() {
-        return _num_doc_vec_sampled;
-    }
+    // int get_num_word_vec_sampled() {
+    //     return _num_word_vec_sampled;
+    // }
+    // int get_num_doc_vec_sampled() {
+    //     return _num_doc_vec_sampled;
+    // }
     int get_num_doc_vec_in_semantic_space_sampled() {
         return _num_doc_vec_in_semantic_space_sampled;
     }
@@ -315,9 +315,9 @@ public:
     double get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() {
         return _num_acceptance_doc_in_stylistic_space / (double)(_num_acceptance_doc_in_stylistic_space + _num_rejection_doc_in_stylistic_space);
     }
-    double get_mh_acceptance_rate_for_word_vector() {
-        return _num_acceptance_word / (double)(_num_acceptance_word + _num_rejection_word);
-    }
+    // double get_mh_acceptance_rate_for_word_vector() {
+    //     return _num_acceptance_word / (double)(_num_acceptance_word + _num_rejection_word);
+    // }
     double get_mh_acceptance_rate_for_alpha0() {
         return _num_acceptance_alpha0 / (double)(_num_acceptance_alpha0 + _num_rejection_alpha0);
     }
@@ -800,6 +800,7 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
+DEFINE_double(sigma_mu, 0.02, "params: sigma_mu");
 DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
 DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
@@ -817,6 +818,7 @@ int main(int argc, char *argv[]) {
     CSTMTrainer trainer;
     trainer.set_ndim_d(FLAGS_ndim_d);
     trainer.set_sigma_u(FLAGS_sigma_u);
+    trainer.set_sigma_mu(FLAGS_sigma_mu);
     trainer.set_sigma_phi(FLAGS_sigma_phi);
     trainer.set_sigma_alpha0(FLAGS_sigma_alpha0);
     trainer.set_gamma_alpha_a(FLAGS_gamma_alpha_a);
