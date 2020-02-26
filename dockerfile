@@ -2,10 +2,10 @@
 FROM ubuntu:bionic
 
 RUN apt-get update && apt-get install -y python3-dev libboost-all-dev git cmake g++ gdb python3-dbg vim libgoogle-glog-dev libgflags-dev swig
-RUN apt update && apt install mecab && \
-    apt install libmecab-dev && \
-    apt install mecab-ipadic-utf8 && \
-    apt install python3-pip
+RUN apt update && apt install -y mecab && \
+    apt install -y libmecab-dev && \
+    apt install -y mecab-ipadic-utf8 && \
+    apt install -y python3-pip
 
 RUN pip3 install mecab-python3
 
