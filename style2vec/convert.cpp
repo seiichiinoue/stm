@@ -36,36 +36,18 @@ int ArgPos(char *str, int argc, char **argv) {
     return -1;
 }
 
-int main(int argc, char **argv) {
-    // remove some unused variables
-    // add some variables for stylistic and syntactic/semantic vectors
+int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec) {
+    long long max_size = 2000, N = 15, max_w = 50;
     FILE *f;
     char st1[max_size];
     char *bestw[N];
-    char file_name[max_size], st[100][max_size];
+    char st[100][max_size];
     float dist, len, len1, len2, bestd[N], vec[max_size];
     long long words, size, a, b, c, d, cn, bi[100];
     long long sizes = -1, sized;
     float *M, *M1, *M2;
-    char *vocab;
-    // usage
-    if (argc < 2) {
-        printf("Usage:\n");
-        printf("./distance_stylevec -load vec.bin\n");
-        printf("\nOptions:\n");
-        printf("\t-load <file>\n");
-        printf("\t\t<file> contains word projections in the BINARY FORMAT\n");
-        printf("\t-d <int>\n");
-        printf("\t\tSet size of style vectors; default is half size of the whole vector\n\n");
-        return 0;
-    }
-    int argi;
-    if ((argi = ArgPos((char *)"-load", argc, argv)) > 0)
-        strcpy(file_name, argv[argi + 1]);
-    if ((argi = ArgPos((char *)"-d", argc, argv)) > 0)
-        sizes = atoi(argv[argi + 1]);
-
-    f = fopen(file_name, "rb");
+    char *vocab, *file_name[max_size];
+    f = fopen(fname.c_str(), "rb");
     if (f == NULL) {
         printf("Input file not found\n");
         return -1;
@@ -78,7 +60,6 @@ int main(int argc, char **argv) {
         sizes = size / 2;
     }
     sized = size - sizes;
-
     vocab = (char *)malloc((long long)words * max_w * sizeof(char));
     for (a = 0; a < N; a++)
         bestw[a] = (char *)malloc(max_size * sizeof(char));
@@ -108,7 +89,7 @@ int main(int argc, char **argv) {
         }
     }
     fclose(f);
-    printf("vocab size: %lld\n", words);
+    // printf("vocab size: %lld\n", words);
     // for (b=0; b<words; ++b) {
     //     printf("%s\n", &vocab[b * max_w]);
     // }
@@ -123,10 +104,9 @@ int main(int argc, char **argv) {
     wcin.imbue(ctype_default);
 
     /* convert array to vector */
-    vector<wstring> vocab_list(words);
-    vector<vector<double>> word_vec(words, vector<double>(size, 0));
-    vector<vector<double>> semantic_vec(words, vector<double>(sized, 0));
-    vector<vector<double>> stylistic_vec(words, vector<double>(sizes, 0));
+    vocab_list.resize(words, L"");
+    semantic_vec.resize(words, vector<double>(sized, 0));
+    stylistic_vec.resize(words, vector<double>(sizes, 0));
     for (b=0; b<words; ++b) {
         // words
         string s = &vocab[b * max_w];
@@ -135,8 +115,8 @@ int main(int argc, char **argv) {
         vocab_list[b] = ws;
         // word vector
         for (a=0; a<size; ++a) {
-            double tmp = M[a+b+size];
-            word_vec[b][a] = tmp;
+            // double tmp = M[a+b+size];
+            // word_vec[b][a] = tmp;
             if (a < sizes) {
                 double tmp1 = M1[a + b * sizes];
                 stylistic_vec[b][a] = tmp1;
@@ -146,8 +126,13 @@ int main(int argc, char **argv) {
             }
         }
     }
-    
-    // wcout << vocab_list[101] << endl;
+    wcout << vocab_list[101] << endl;
     cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
     return 0;
+}
+
+int main() {
+    vector<wstring> vocab;
+    vector<vector<double>> semantic_vec, stylistic_vec;
+    load_vector("./bin/vec.bin", vocab, semantic_vec, stylistic_vec);
 }
