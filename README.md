@@ -46,6 +46,13 @@ Words in train file: 304492532
 
 ## Train CSTM
 
+```
+$ cd bin/
+$ ./cstm -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/processed/ -model_path=./cstm.model
+```
+
+- `ndim_d` must be same to dimention size of pre-trained word vector
+- `ignore_count` must be same to ignore count in pre-training
 
 
 ## References
