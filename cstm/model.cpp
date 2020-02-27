@@ -259,17 +259,23 @@ public:
             dataset.push_back(word_ids);
         }
     }
-    void init_semantic_vector(wstring word, vector<double> vec) {
+    bool set_semantic_vector(wstring word, vector<double> vec) {
+        if (!_vocab->word_exists(word)) return false;
         id word_id = _vocab->get_word_id(word);
         // _id_to_semantic_vec[word_id] = vec;
         double* ptr = &vec[0];
-        _cstm->_semantic_vectors[word_id] = ptr;
+        // _cstm->_semantic_vectors[word_id] = ptr;
+        _cstm->set_semantic_vector(word_id, ptr);
+        return true;
     }
-    void init_stylistic_vector(wstring word, vector<double> vec) {
+    bool set_stylistic_vector(wstring word, vector<double> vec) {
+        if (!_vocab->word_exists(word)) return false;
         id word_id = _vocab->get_word_id(word);
         // _id_to_stylistic_vec[word_id] = vec;
         double* ptr = &vec[0];
-        _cstm->_stylistic_vectors[word_id] = ptr;
+        // _cstm->_stylistic_vectors[word_id] = ptr;
+        _cstm->set_stylistic_vector(word_id, ptr);
+        return true;
     }
     bool is_doc_contain_word(int doc_id, id word_id) {
         unordered_set<int> &set = _docs_containing_word[word_id];
@@ -556,8 +562,8 @@ public:
         _cstm->set_doc_vector_in_semantic_space(doc_id, new_doc_vec);
         _cstm->update_Zi(doc_id);
         double log_pw_new = _cstm->compute_log_probability_document(doc_id);
-        assert(log_pw_old != 0);
-        assert(log_pw_new != 0);
+        // assert(log_pw_old != 0);
+        // assert(log_pw_new != 0);
         // prior distribution
         double log_prior_old = _cstm->compute_log_prior_vector(old_doc_vec);
         double log_prior_new = _cstm->compute_log_prior_vector(new_doc_vec);
@@ -599,8 +605,8 @@ public:
         _cstm->set_doc_vector_in_stylistic_space(doc_id, new_doc_vec);
         _cstm->update_Zi(doc_id);
         double log_pw_new = _cstm->compute_log_probability_document(doc_id);
-        assert(log_pw_old != 0);
-        assert(log_pw_new != 0);
+        // assert(log_pw_old != 0);
+        // assert(log_pw_new != 0);
         // prior distribution
         double log_prior_old = _cstm->compute_log_prior_vector(old_doc_vec);
         double log_prior_new = _cstm->compute_log_prior_vector(new_doc_vec);
@@ -697,7 +703,8 @@ void string_to_wstring(const std::string &src, std::wstring &dest) {
 	delete [] wcs;
 }
 
-int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1, vector<vector<double>> &vec2) {
+
+int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec) {
     long long max_size = 2000, N = 15, max_w = 50;
     FILE *f;
     char st1[max_size];
@@ -713,15 +720,14 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
         printf("Input file not found\n");
         return -1;
     }
-    fscanf(f, "%lld", &words);
-    fscanf(f, "%lld", &size);
+    int resw; resw = fscanf(f, "%lld", &words);
+    int ress; ress = fscanf(f, "%lld", &size);
 
     /* size of stylistic (sizes) and syntactic/semantic (sized) vector */
     if (sizes == -1) {
         sizes = size / 2;
     }
     sized = size - sizes;
-
     vocab = (char *)malloc((long long)words * max_w * sizeof(char));
     for (a = 0; a < N; a++)
         bestw[a] = (char *)malloc(max_size * sizeof(char));
@@ -732,6 +738,7 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
         printf("Cannot allocate memory: %lld MB    %lld  %lld\n", (long long)words * size * sizeof(float) / 1048576, words, size);
         return -1;
     }
+    int tmp;
     for (b = 0; b < words; b++) {
         a = 0;
         while (1) {
@@ -743,7 +750,7 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
         }
         vocab[b * max_w + a] = 0;
         for (a = 0; a < size; a++) {
-            fread(&M[a + b * size], sizeof(float), 1, f);
+            tmp = fread(&M[a + b * size], sizeof(float), 1, f);
             if (a < sizes)
                 M1[a + b * sizes] = M[a + b * size];
             else
@@ -751,10 +758,6 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
         }
     }
     fclose(f);
-    printf("vocab size: %lld\n", words);
-    // for (b=0; b<words; ++b) {
-    //     printf("%s\n", &vocab[b * max_w]);
-    // }
     
     /* language code settings */
     setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -766,20 +769,17 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
     wcin.imbue(ctype_default);
 
     /* convert array to vector */
-    vector<wstring> vocab_list(words);
-    vector<vector<double>> word_vec(words, vector<double>(size, 0));
-    vector<vector<double>> semantic_vec(words, vector<double>(sized, 0));
-    vector<vector<double>> stylistic_vec(words, vector<double>(sizes, 0));
+    vocab_list.resize(words, L"");
+    semantic_vec.resize(words, vector<double>(sized, 0));
+    stylistic_vec.resize(words, vector<double>(sizes, 0));
     for (b=0; b<words; ++b) {
         // words
-        string s = &vocab[b * max_w];
+        string s = &vocab[b * max_w];        
         wstring ws;
         string_to_wstring(s, ws);
         vocab_list[b] = ws;
         // word vector
         for (a=0; a<size; ++a) {
-            double tmp = M[a+b+size];
-            word_vec[b][a] = tmp;
             if (a < sizes) {
                 double tmp1 = M1[a + b * sizes];
                 stylistic_vec[b][a] = tmp1;
@@ -789,16 +789,13 @@ int load_vector(string fname, vector<wstring> vec0, vector<vector<double>> &vec1
             }
         }
     }
-    vec0 = vocab_list;
-    vec1 = semantic_vec;
-    vec2 = stylistic_vec;
     // wcout << vocab_list[101] << endl;
-    // cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
+    cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
     return 0;
 }
 
 // hyper parameters flags
-DEFINE_int32(ndim_d, 20, "number of hidden size");
+DEFINE_int32(ndim_d, 300, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
 DEFINE_double(sigma_mu, 0.02, "params: sigma_mu");
 DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
@@ -848,18 +845,21 @@ int main(int argc, char *argv[]) {
         }
         entry_author = readdir(dp_author);
     }
+    // prepare model
+    trainer.prepare();
     // read pre-trained vectors
     vector<wstring> vocab;
     vector<vector<double>> semantic_vec, stylistic_vec;
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
-    for (int i=0; i<vocab.size(); ++i) {
-        trainer.init_semantic_vector(vocab[i], semantic_vec[i]);
-        trainer.init_stylistic_vector(vocab[i], stylistic_vec[i]);
-    }
     assert(trainer._ndim_d == semantic_vec[0].size());
     assert(trainer._ndim_d == stylistic_vec[0].size());
-    // prepare model
-    trainer.prepare();
+    // set pre-trained semantic/stylistic vectors
+    int added_word_count = 0;
+    for (int i=0; i<vocab.size(); ++i) {
+        bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
+        bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
+        added_word_count += (int)(res1 && res2);
+    }
     // summary
     std::cout << "vocabulary size: " << trainer.get_vocabulary_size() << std::endl;
     std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
@@ -878,11 +878,11 @@ int main(int argc, char *argv[]) {
         std::cout << "epoch " << i+1 << "/" << FLAGS_epoch << std::endl;
         // logging temporary result
         std::cout << "perplexity: " << trainer.compute_perplexity() << std::endl;
-        std::cout << "log likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
+        std::cout << "log_likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
         // logging statistics
         std::cout << "MH acceptance:" << std::endl;
-        std::cout << "    semantic doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
-        std::cout << "    stylistic doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() << std::endl;
+        std::cout << "    semantic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
+        std::cout << "    stylistic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() << std::endl;
         // std::cout << "    word: " << trainer.get_mh_acceptance_rate_for_word_vector() << std::endl;
         std::cout << "    alpha0: " << trainer.get_mh_acceptance_rate_for_alpha0() << std::endl;
         trainer.save(FLAGS_model_path);
