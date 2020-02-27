@@ -99,6 +99,14 @@ namespace cstm {
             // for (id word_id=0; word_id<vocabulary_size; ++word_id) {
             //     _word_vectors[word_id] = generate_vector();
             // }
+            // semantic vectors
+            for (id word_id=0; word_id<vocabulary_size; ++word_id) {
+                _semantic_vectors[word_id] = generate_vector();
+            }
+            // stylistic vectors
+            for (id word_id=0; word_id<vocabulary_size; ++word_id) {
+                _stylistic_vectors[word_id] = generate_vector();
+            }
             // document vectors
             for (int doc_id=0; doc_id<num_documents; ++ doc_id) {
                 // _doc_vectors[doc_id] = generate_vector();
@@ -422,6 +430,14 @@ namespace cstm {
         //     double *target = _word_vectors[word_id];
         //     std::memcpy(target, source, _ndim_d * sizeof(double));
         // }
+        void set_semantic_vector(id word_id, double *source) {
+            double *target = _semantic_vectors[word_id];
+            std::memcpy(target, source, _ndim_d * sizeof(double));
+        }
+        void set_stylistic_vector(id word_id, double *source) {
+            double *target = _stylistic_vectors[word_id];
+            std::memcpy(target, source, _ndim_d * sizeof(double));
+        }
         // void set_doc_vector(int doc_id, double *source) {
         //     double *target = _doc_vectors[doc_id];
         //     std::memcpy(target, source, _ndim_d * sizeof(double));
