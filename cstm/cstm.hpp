@@ -34,7 +34,7 @@ namespace cstm {
         int _sum_word_frequency;        // 全単語の出現回の総和
         int _ignore_word_count;
         double _sigma_u;                // 意味空間上の文書ベクトルのランダムウォーク幅
-        double _sigma_mu;               // スタイル空間上の文べベクトルのランダムウォーク幅
+        double _sigma_v;               // スタイル空間上の文べベクトルのランダムウォーク幅
         double _sigma_phi;
         double _sigma_alpha0;
         double _gamma_alpha_a;
@@ -52,7 +52,7 @@ namespace cstm {
         CSTM() {
             _ndim_d = NDIM_D;
             _sigma_u = SIGMA_U;
-            _sigma_mu = SIGMA_MU;
+            _sigma_v = SIGMA_V;
             _sigma_phi = SIGMA_PHI;
             _sigma_alpha0 = SIGMA_ALPHA;
             _gamma_alpha_a = GAMMA_ALPHA_A;
@@ -160,7 +160,7 @@ namespace cstm {
             // _noise_word = normal_distribution<double>(0, _sigma_phi);
             // _noise_doc = normal_distribution<double>(0, _sigma_u);
             _noise_doc_in_semantic_space = normal_distribution<double>(0, _sigma_u);
-            _noise_doc_in_stylistic_space = normal_distribution<double>(0, _sigma_mu);
+            _noise_doc_in_stylistic_space = normal_distribution<double>(0, _sigma_v);
             _noise_alpha0 = normal_distribution<double>(0, _sigma_alpha0);
         }
         void add_word(id word_id, int doc_id) {
@@ -218,7 +218,7 @@ namespace cstm {
             double z = _noise_alpha0(sampler::minstd);
             return old_alpha0 * cstm::exp(z);
         }
-        // for updating Zd = \Sigma_k \alpha_d_k (文書dの単語k)
+        // for updating Zd = \Sigma_k [\alpha_d_k (文書dの単語kのalpha)]
         double sum_alpha_word_given_doc(int doc_id) {
             double sum = 0;
             for (id word_id=0; word_id<_vocabulary_size; ++word_id) {
@@ -243,20 +243,26 @@ namespace cstm {
         //     double alpha = _alpha0 * g0 * cstm::exp(f);
         //     return alpha;
         // }
-        // tstm; compute alpha: \alpha_{d, k} = \alpha_0 * G_0(w_k) * \exp( \phi(w_k)^T u_d ) * \exp( \zeta(w_k)^T mu_d )
+        // tstm; compute alpha: \alpha_{d, k} = \alpha_0 * G_0(w_k) * \exp( \phi(w_k)^T u_d ) * \exp( \zeta(w_k)^T v_d )
         double _compute_alpha_word(double *semantic_vec, double *stylistic_vec, double *doc_vec_in_semantic_space, double *doc_vec_in_stylistic_space, double g0) {
+            assert(g0 > 0);
             // gaussian process in semantic space
-            double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
+            // double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
+            double f = cstm::normalized_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
             // gaussian process in stylistic space
-            double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
+            // double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
+            double g = cstm::normalized_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
+            // cout << f << " " << g << endl;
             double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
+            // cout << alpha << endl;
+            assert(alpha > 0);
             return alpha;
         }
         // compute probability: \p_d (w | \alpha_d, n_d)
         // update probability per compute alpha
         double compute_reduced_log_probability_document(id word_id, int doc_id) {
             double log_pw = 0;
-            double Zi = _Zi[doc_id];
+            double Zi = _Zi[doc_id];    // \sigma \alpha_k
             int n_k = get_word_count_in_doc(word_id, doc_id);
             if (n_k == 0) {
                 return _compute_reduced_log_probability_document(word_id, doc_id, n_k, Zi, 0);
@@ -267,6 +273,7 @@ namespace cstm {
         double _compute_reduced_log_probability_document(id word_id, int doc_id, int n_k, double Zi, double alpha_k) {
             double log_pw = 0;
             double sum_word_frequency = _sum_n_k[doc_id];
+            // \gamma( \sigma \alpha_k ) / \gamma ( \sigma (\alpha_k + n_k) )
             log_pw += lgamma(Zi) - lgamma(Zi + sum_word_frequency);
             // if-else conditional for speed up
             if (n_k == 0) {
@@ -303,6 +310,8 @@ namespace cstm {
             }
             double sum_word_frequency = _sum_n_k[doc_id];
             double log_pw = lgamma(Zi) - lgamma(Zi + sum_word_frequency);
+            // // approximate 
+            // double log_pw = -1 * lgamma(sum_word_frequency);
             for (const id word_id : word_ids) {
                 int count = _word_count[word_id];
                 if (count <= _ignore_word_count) {
@@ -312,6 +321,7 @@ namespace cstm {
             }
             return log_pw;
         }
+        // approximate lower bound;  log sum -> sum log
         double _compute_second_term_of_log_probability_document(int doc_id, id word_id) {
             double alpha_k = compute_alpha_word_given_doc(word_id, doc_id);
             int n_k = get_word_count_in_doc(word_id, doc_id);
@@ -321,7 +331,7 @@ namespace cstm {
             double tmp = 0;
             for (int i=0; i<n_k; ++i) {
                 tmp += log(alpha_k + i);
-            }
+            }            
             return tmp;
         }
         double compute_log_prior_alpha0(double alpha0) {
@@ -402,8 +412,8 @@ namespace cstm {
         void set_sigma_u(double sigma_u) {
             _sigma_u = sigma_u;
         }
-        void set_sigma_mu(double sigma_mu) {
-            _sigma_mu = sigma_mu;
+        void set_sigma_v(double sigma_v) {
+            _sigma_v = sigma_v;
         }
         void set_sigma_phi(double sigma_phi) {
             _sigma_phi = sigma_phi;
@@ -485,7 +495,7 @@ template<class Archive>
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
         archive & cstm._sigma_u;
-        archive & cstm._sigma_mu;
+        archive & cstm._sigma_v;
         archive & cstm._sigma_phi;
         archive & cstm._sigma_alpha0;
         archive & cstm._alpha0;
@@ -555,7 +565,7 @@ template<class Archive>
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
         archive & cstm._sigma_u;
-        archive & cstm._sigma_mu;
+        archive & cstm._sigma_v;
         archive & cstm._sigma_phi;
         archive & cstm._sigma_alpha0;
         archive & cstm._alpha0;

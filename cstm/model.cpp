@@ -104,7 +104,7 @@ public:
     int _ignored_vocabulary_size;
 
     // stat
-    // times of acceptance 
+    // times of acceptance in MH estimation
     // int _num_acceptance_doc;
     int _num_acceptance_doc_in_semantic_space;
     int _num_acceptance_doc_in_stylistic_space;
@@ -159,16 +159,20 @@ public:
     }
 
     void reset_statistics() {
-        // int _num_acceptance_doc = 0;    
-        // int _num_acceptance_word = 0;
-        int _num_acceptance_alpha0 = 0;
-        // int _num_rejection_doc = 0;
-        // int _num_rejection_word = 0;
-        int _num_rejection_alpha0 = 0;
-        // int _num_word_vec_sampled = 0;
-        // int _num_doc_vec_sampled = 0;
-        int _num_doc_vec_in_semantic_space_sampled = 0;
-        int _num_doc_vec_in_stylistic_space_sampled = 0;
+        // _num_acceptance_doc = 0;    
+        // _num_acceptance_word = 0;
+        _num_acceptance_doc_in_semantic_space = 0;
+        _num_acceptance_doc_in_stylistic_space = 0;
+        _num_acceptance_alpha0 = 0;
+        // _num_rejection_doc = 0;
+        // _num_rejection_word = 0;
+        _num_rejection_doc_in_semantic_space = 0;
+        _num_rejection_doc_in_stylistic_space = 0;
+        _num_rejection_alpha0 = 0;
+        // _num_word_vec_sampled = 0;
+        // _num_doc_vec_sampled = 0;
+        _num_doc_vec_in_semantic_space_sampled = 0;
+        _num_doc_vec_in_stylistic_space_sampled = 0;
     }
 
     void prepare() {
@@ -193,10 +197,12 @@ public:
             _random_doc_ids_for_stylistic.push_back(doc_id);
         }
         _cstm->prepare();
+        assert(_ndim_d == _cstm->_ndim_d);
         // Zi
         for (int doc_id=0; doc_id<num_docs; ++doc_id) {
             _cstm->update_Zi(doc_id);
         }
+        assert(_sum_word_frequency.size() == _dataset.size());
         _old_alpha_words = new double[num_docs];
         _Zi_cache = new double[num_docs];
         // random sampling of words
@@ -389,8 +395,8 @@ public:
     void set_sigma_u(double sigma_u) {
         _cstm->_sigma_u = sigma_u;
     }
-    void set_sigma_mu(double sigma_mu) {
-        _cstm->_sigma_mu = sigma_mu;
+    void set_sigma_v(double sigma_v) {
+        _cstm->_sigma_v = sigma_v;
     }
     void set_sigma_phi(double sigma_phi) {
         _cstm->_sigma_phi = sigma_phi;
@@ -790,14 +796,14 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
         }
     }
     // wcout << vocab_list[101] << endl;
-    cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
+    cout << "stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
     return 0;
 }
 
 // hyper parameters flags
 DEFINE_int32(ndim_d, 300, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
-DEFINE_double(sigma_mu, 0.02, "params: sigma_mu");
+DEFINE_double(sigma_v, 0.02, "params: sigma_v");
 DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
 DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
@@ -815,7 +821,7 @@ int main(int argc, char *argv[]) {
     CSTMTrainer trainer;
     trainer.set_ndim_d(FLAGS_ndim_d);
     trainer.set_sigma_u(FLAGS_sigma_u);
-    trainer.set_sigma_mu(FLAGS_sigma_mu);
+    trainer.set_sigma_v(FLAGS_sigma_v);
     trainer.set_sigma_phi(FLAGS_sigma_phi);
     trainer.set_sigma_alpha0(FLAGS_sigma_alpha0);
     trainer.set_gamma_alpha_a(FLAGS_gamma_alpha_a);
@@ -860,13 +866,15 @@ int main(int argc, char *argv[]) {
         bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
         added_word_count += (int)(res1 && res2);
     }
+    std::cout << "count of added word: " << added_word_count << std::endl;
     // summary
     std::cout << "vocabulary size: " << trainer.get_vocabulary_size() << std::endl;
+    std::cout << "ignored vocabulary size: " << trainer.get_ignored_vocabulary_size() << std::endl;
     std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
     // training
     for (int i=0; i<FLAGS_epoch; ++i) {
-        for (int j=0; j<10000; ++j) {
+        for (int j=0; j<10000; ++j) { //10000
             trainer.perform_mh_sampling_document_vector_in_semantic_space();
             trainer.perform_mh_sampling_document_vector_in_stylistic_space();
             // trainer.perform_mh_sampling_word();
@@ -878,7 +886,7 @@ int main(int argc, char *argv[]) {
         std::cout << "epoch " << i+1 << "/" << FLAGS_epoch << std::endl;
         // logging temporary result
         std::cout << "perplexity: " << trainer.compute_perplexity() << std::endl;
-        std::cout << "log_likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
+        std::cout << "log likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
         // logging statistics
         std::cout << "MH acceptance:" << std::endl;
         std::cout << "    semantic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
