@@ -10,15 +10,15 @@ INCLUDE = -I/usr/include/
 LDFLAGS = `python3-config --includes` `python3-config --ldflags`
 
 model:
-	$(CC) -O3 $(STD) -o model cstm/model.cpp $(BOOST) $(INCLUDE) $(FMATH) $(GFLAGS) 
+	$(CC) -O3 $(STD) -o bin/cstm cstm/model.cpp $(BOOST) $(INCLUDE) $(FMATH) $(GFLAGS) 
 
 install:
 	$(CC) -O3 $(STD) -DPIC -shared -fPIC -o pycstm.so pycstm.cpp $(INCLUDE) $(LDFLAGS) $(PYTHON) $(BOOST) $(FMATH) $(GFLAGS)
 
 test:
-	$(CC) -O3 -Wall -o model cstm/model.cpp $(LLDB) $(BOOST) $(FMATH) $(GFLAGS)
+	$(CC) -O3 -Wall -o a.out cstm/model.cpp $(LLDB) $(BOOST) $(FMATH) $(GFLAGS)
 
 clean:
-	rm -f model
+	rm -f bin/cstm
 
 .PHONY: clean
