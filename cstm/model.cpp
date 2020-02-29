@@ -240,7 +240,10 @@ public:
         }
         vector<string> components;
         split_string_by(filepath, '/', components);
-        string filename = components.back();
+        reverse(components.begin(), components.end());
+        string name = components[0], author = components[1];
+        string filename = components[1] + "_" + components[0];
+        // cout << filename << endl;
         _doc_filename_to_id[filename] = doc_id;
         _doc_id_to_filename[doc_id] = filename;
         return doc_id;
@@ -835,6 +838,10 @@ int main(int argc, char *argv[]) {
     while (entry_author != NULL){
         const char *cstr = entry_author->d_name;
         string author = string(cstr);
+        if (author == ".." || author == ".") {
+            entry_author = readdir(dp_author);
+            continue;
+        }
         string tmp = FLAGS_data_path + author;
         const char* path_to_file = tmp.c_str();
         DIR *dp_file; dp_file = opendir(path_to_file);
@@ -844,7 +851,7 @@ int main(int argc, char *argv[]) {
             const char *cstr2 = entry_file->d_name;
             string file_path = string(cstr2);
             if (ends_with(file_path, ".txt")) {
-                std::cout << "loading " << file_path << std::endl;
+                // std::cout << "loading " << file_path << std::endl;
                 int doc_id = trainer.add_document(FLAGS_data_path + author + "/" + file_path);
             }
             entry_file = readdir(dp_file);
