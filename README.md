@@ -54,6 +54,20 @@ $ ./cstm -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/processe
 - `ndim_d` must be same to dimention size of pre-trained word vector
 - `ignore_count` must be same to ignore count in pre-training
 
+## Visualize Result
+
+### Distance between words
+
+```
+$ cd style2vec/ && g++ distance.cpp -o distance -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
+$ ./distance -load ../bin/vec.bin
+```
+
+### Distance between documents [WIP]
+
+```
+$ make install
+```
 
 ## References
 
