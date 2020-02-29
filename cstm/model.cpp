@@ -242,7 +242,7 @@ public:
         split_string_by(filepath, '/', components);
         reverse(components.begin(), components.end());
         string name = components[0], author = components[1];
-        string filename = components[1] + "_" + components[0];
+        string filename = author + "_" + name;
         // cout << filename << endl;
         _doc_filename_to_id[filename] = doc_id;
         _doc_id_to_filename[doc_id] = filename;
