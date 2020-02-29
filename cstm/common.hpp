@@ -37,7 +37,7 @@ namespace cstm {
             a2 += a[i] * a[i];
             b2 += b[i] * b[i];
         }
-        return inner / (a2 * b2);
+        return inner / (std::sqrt(a2) * std::sqrt(b2));
     }
     void dump_vec(double *vec, int len) {
         std::cout << "[";
