@@ -62,6 +62,8 @@ namespace cstm {
             _semantic_vectors = NULL;
             _stylistic_vectors = NULL;
             // _doc_vectors = NULL;
+            _doc_vectors_in_semantic_space = NULL;
+            _doc_vectors_in_stylistic_space = NULL;
             _n_k = NULL;
             _word_count = NULL;
             _sum_n_k = NULL;
@@ -583,6 +585,30 @@ template<class Archive>
         //         cstm._doc_vectors[doc_id] = new double[cstm._ndim_d];
         //     }
         // }
+        if (cstm._semantic_vectors == NULL) {
+            cstm._semantic_vectors = new double*[cstm._vocabulary_size];
+            for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+                cstm._semantic_vectors[word_id] = new double[cstm._ndim_d];
+            }
+        }
+        if (cstm._stylistic_vectors == NULL) {
+            cstm._stylistic_vectors = new double*[cstm._vocabulary_size];
+            for (id word_id=0; word_id<cstm._vocabulary_size; ++word_id) {
+                cstm._stylistic_vectors[word_id] = new double[cstm._ndim_d];
+            }
+        }
+        if (cstm._doc_vectors_in_semantic_space == NULL) {
+            cstm._doc_vectors_in_semantic_space = new double*[cstm._num_documents];
+            for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+                cstm._doc_vectors_in_semantic_space[doc_id] = new double[cstm._ndim_d];
+            }
+        }
+        if (cstm._doc_vectors_in_stylistic_space == NULL) {
+            cstm._doc_vectors_in_stylistic_space = new double*[cstm._num_documents];
+            for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
+                cstm._doc_vectors_in_stylistic_space[doc_id] = new double[cstm._ndim_d];
+            }
+        }
         if (cstm._n_k == NULL) {
             cstm._n_k = new int*[cstm._num_documents];
             for (int doc_id=0; doc_id<cstm._num_documents; ++doc_id) {
