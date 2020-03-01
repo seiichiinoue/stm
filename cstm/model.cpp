@@ -805,10 +805,10 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
 
 // hyper parameters flags
 DEFINE_int32(ndim_d, 300, "number of hidden size");
-DEFINE_double(sigma_u, 0.02, "params: sigma_u");
-DEFINE_double(sigma_v, 0.02, "params: sigma_v");
+DEFINE_double(sigma_u, 0.01, "params: sigma_u");
+DEFINE_double(sigma_v, 0.01, "params: sigma_v");
 DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
-DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
+DEFINE_double(sigma_alpha0, 0.1, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
 DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
 DEFINE_int32(ignore_word_count, 1, "number of ignore word");
@@ -879,6 +879,7 @@ int main(int argc, char *argv[]) {
     std::cout << "ignored vocabulary size: " << trainer.get_ignored_vocabulary_size() << std::endl;
     std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
+    std::cout << "dimension size: " << trainer.get_ndim_d() << std::endl;
     // training
     for (int i=0; i<FLAGS_epoch; ++i) {
         for (int j=0; j<10000; ++j) { //10000
