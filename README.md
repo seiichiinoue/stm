@@ -67,6 +67,9 @@ $ ./distance -load ../bin/vec.bin
 
 ```
 $ make install
+$ python3
+>>> import pycstm
+>>> cstm = pycstm.cstm("./bin/cstm.model")
 ```
 
 ## References
