@@ -29,6 +29,7 @@ namespace cstm {
         }
         return inner;
     }
+    // actually, we have to normalize vector `a` which is not generated from gaussian
     double normalized_linear(double *a, double *b, int length) {
         double inner = 0;
         double a2 = 0, b2 = 0;
@@ -37,7 +38,14 @@ namespace cstm {
             a2 += a[i] * a[i];
             b2 += b[i] * b[i];
         }
-        return inner / (std::sqrt(a2) * std::sqrt(b2));
+        return inner / std::sqrt(a2 * b2);
+    }
+    double scaled_linear(double *a, double *b, int length) {
+        double inner = 0;
+        for (int i=0; i<length; ++i) {
+            inner += a[i] * b[i];
+        }
+        return inner * 20 / length;
     }
     void dump_vec(double *vec, int len) {
         std::cout << "[";
