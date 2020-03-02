@@ -1,7 +1,5 @@
 # Modeling Text through Gaussian Process using Style-sensitive Word Vectors
 
-![](https://seiichiinoue.github.io/img/sotsuron.jpg)
-
 ## Environment
 
 - Using Docker (docker must installed to local environment)
