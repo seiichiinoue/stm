@@ -30,9 +30,8 @@ $ python3 parse.py && python3 process.py
 ### Train Style2Vec
 
 ```
-$ cd style2vec/
-$ g++ style2vec.cpp -o style2vec -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
-$ ./style2vec -train ../data/all.txt -output ../bin/vec.bin
+$ make prepare
+$ cd bin/ && ./style2vec -train ../data/all.txt -output ./vec.bin
 ```
 
 - My settings
@@ -47,8 +46,8 @@ Words in train file: 304492532
 ## Train CSTM
 
 ```
-$ cd bin/
-$ ./model -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/processed/ -vec_path=./vec.bin -model_path=./cstm.model
+$ make
+$ cd bin/ && ./cstm -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/processed/ -vec_path=./vec.bin -model_path=./cstm.model
 ```
 
 - `ndim_d` must be same to dimention size of pre-trained word vector
@@ -59,8 +58,8 @@ $ ./model -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/process
 ### Distance between words
 
 ```
-$ cd style2vec/ && g++ distance.cpp -o distance -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
-$ ./distance -load ../bin/vec.bin
+$ make distance
+$ cd bin && ./distance -load ./vec.bin
 ```
 
 ### Distance between documents [WIP]

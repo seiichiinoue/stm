@@ -9,12 +9,17 @@ GFLAGS = -lglog -lgflags
 INCLUDE = -I/usr/include/
 LDFLAGS = `python3-config --includes` `python3-config --ldflags`
 
-model:
+trainer:
 	$(CC) -O3 $(STD) -o bin/cstm cstm/model.cpp $(BOOST) $(INCLUDE) $(FMATH) $(GFLAGS) 
 
 install:
 	$(CC) -O3 $(STD) -DPIC -shared -fPIC -o pycstm.so pycstm.cpp $(INCLUDE) $(LDFLAGS) $(PYTHON) $(BOOST) $(FMATH) $(GFLAGS)
 
+prepare:
+	$(CC) style2vec/style2vec.cpp -o bin/style2vec -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
+
+distance:
+	$(CC) style2vec/distance.cpp -o bin/distance -lm -pthread -O3 -march=native -Wall -Wextra -funroll-loops -Wno-unused-result
 
 test:
 	$(CC) -O3 -Wall -o a.out cstm/model.cpp $(LLDB) $(BOOST) $(FMATH) $(GFLAGS)
