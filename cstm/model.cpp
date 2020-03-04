@@ -203,6 +203,7 @@ public:
             _cstm->update_Zi(doc_id);
         }
         assert(_sum_word_frequency.size() == _dataset.size());
+        assert(_vocab->num_words() == _word_frequency.size());
         _old_alpha_words = new double[num_docs];
         _Zi_cache = new double[num_docs];
         // random sampling of words
@@ -230,7 +231,7 @@ public:
         // read file
         wstring sentence;
         vector<wstring> sentences;
-        while (getline(ifs, sentence) && !sentence.empty()) {
+        while (getline(ifs, sentence) && !ifs.eof()) {
             sentences.push_back(sentence);
         }
         for (wstring &sentence : sentences) {
@@ -712,7 +713,6 @@ void string_to_wstring(const std::string &src, std::wstring &dest) {
 	delete [] wcs;
 }
 
-
 int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec) {
     long long max_size = 2000, N = 15, max_w = 50;
     FILE *f;
@@ -804,14 +804,14 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
 }
 
 // hyper parameters flags
-DEFINE_int32(ndim_d, 300, "number of hidden size");
-DEFINE_double(sigma_u, 0.01, "params: sigma_u");
-DEFINE_double(sigma_v, 0.01, "params: sigma_v");
-DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");
-DEFINE_double(sigma_alpha0, 0.1, "params: sigma_alpha0");
+DEFINE_int32(ndim_d, 20, "number of hidden size");
+DEFINE_double(sigma_u, 0.02, "params: sigma_u");
+DEFINE_double(sigma_v, 0.02, "params: sigma_v");
+DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");    // not use
+DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
 DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
-DEFINE_int32(ignore_word_count, 1, "number of ignore word");
+DEFINE_int32(ignore_word_count, 4, "number of ignore word");
 DEFINE_int32(epoch, 100, "num of epoch");
 DEFINE_string(data_path, "../data/processed/", "directory input data located");
 DEFINE_string(model_path, "./cstm.model", "saveplace of model");
