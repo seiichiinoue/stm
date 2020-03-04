@@ -259,7 +259,7 @@ namespace cstm {
             // cout << f << " " << g << endl;
             double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
             // cout << alpha << endl;
-            assert(alpha > 0 && alpha < 1e20);
+            assert(alpha > 0 && alpha < 1e15);   // must be smaller than 1e15 to avoid oveflow
             return alpha;
         }
         // compute probability: \p_d (w | \alpha_d, n_d)
