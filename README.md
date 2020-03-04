@@ -31,13 +31,13 @@ $ python3 parse.py && python3 process.py
 
 ```
 $ make prepare
-$ cd bin/ && ./style2vec -train ../data/all.txt -output ./vec.bin
+$ cd bin/ && ./style2vec -size 40 -size-s 20 -train ../data/all.txt -output ./vec_dim20.bin
 ```
 
 - My settings
 
 ```
-SETTINGS={size:600, size-s:300, train:../data/all.txt, save-vocab:, read-vocab:, debug:2, binary:1, cbow:1, alpha:0.050000, output:../bin/vec.bin, iwindow-threshold:5, fix-threshold:1, sample:0.001000, negative:5, threads:12, iter:10, min-count:5, classes:0}
+SETTINGS={size:40, size-s:20, train:../data/all.txt, save-vocab:, read-vocab:, debug:2, binary:1, cbow:1, alpha:0.050000, output:../bin/vec_dim20.bin, iwindow-threshold:5, fix-threshold:1, sample:0.001000, negative:5, threads:12, iter:10, min-count:5, classes:0}
 Starting training using file ../data/all.txt
 Vocab size: 202498
 Words in train file: 304492532
@@ -47,7 +47,7 @@ Words in train file: 304492532
 
 ```
 $ make
-$ cd bin/ && ./cstm -ndim_d=300 -ignore_word_count=1 -epoch=100 -data_path=../data/processed/ -vec_path=./vec.bin -model_path=./cstm.model
+$ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -data_path=../data/main/ -vec_path=./vec.bin -model_path=./cstm.model
 ```
 
 - `ndim_d` must be same to dimention size of pre-trained word vector
