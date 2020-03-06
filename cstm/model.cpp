@@ -828,28 +828,28 @@ void calc_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<
     scale_coef_for_stylistic /= (double)(stylistic_vec.size());
 }
 
-void calc_max_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
-    // semantic
-    scale_coef_for_semantic = 0;
-    for (int i=0; i<semantic_vec.size(); ++i) {
-        double *vec = &semantic_vec[i][0];
-        double tmp = cstm::norm(vec, semantic_vec[i].size());
-        if (tmp > scale_coef_for_semantic) {
-            scale_coef_for_semantic = tmp;
-        }
-    }
-    // scale_coef_for_semantic /= (double)(semantic_vec.size());
-    // stylistic
-    scale_coef_for_stylistic = 0;
-    for (int i=0; i<stylistic_vec.size(); ++i) {
-        double *vec = &stylistic_vec[i][0];
-        double tmp = cstm::norm(vec, stylistic_vec[i].size());
-        if (tmp > scale_coef_for_stylistic) {
-            scale_coef_for_stylistic = tmp;
-        }
-    }
-    // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
-}
+// void calc_max_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
+//     // semantic
+//     scale_coef_for_semantic = 0;
+//     for (int i=0; i<semantic_vec.size(); ++i) {
+//         double *vec = &semantic_vec[i][0];
+//         double tmp = cstm::norm(vec, semantic_vec[i].size());
+//         if (tmp > scale_coef_for_semantic) {
+//             scale_coef_for_semantic = tmp;
+//         }
+//     }
+//     // scale_coef_for_semantic /= (double)(semantic_vec.size());
+//     // stylistic
+//     scale_coef_for_stylistic = 0;
+//     for (int i=0; i<stylistic_vec.size(); ++i) {
+//         double *vec = &stylistic_vec[i][0];
+//         double tmp = cstm::norm(vec, stylistic_vec[i].size());
+//         if (tmp > scale_coef_for_stylistic) {
+//             scale_coef_for_stylistic = tmp;
+//         }
+//     }
+//     // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
+// }
 
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
@@ -873,8 +873,8 @@ int main(int argc, char *argv[]) {
     vector<vector<double>> semantic_vec, stylistic_vec;
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
     double scale_coef_for_semantic, scale_coef_for_stylistic;
-    calc_max_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
-    cout << scale_coef_for_semantic << " " << scale_coef_for_stylistic << endl;
+    calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
+    cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
     // set hyper parameter
     CSTMTrainer trainer;
     trainer.set_scale_u(scale_coef_for_semantic);
