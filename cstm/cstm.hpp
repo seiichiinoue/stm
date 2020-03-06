@@ -303,7 +303,7 @@ namespace cstm {
             double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
             // cout << alpha << endl;
             assert(alpha > 0);
-            if (alpha > 1e15) cout << f << " " << g << " " << alpha << endl;
+            // if (alpha > 1e15) cout << f << " " << g << " " << alpha << endl;
             assert(alpha < 1e15);   // must be smaller than 1e15 to avoid oveflow
             return alpha;
         }
