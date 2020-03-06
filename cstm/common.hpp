@@ -2,7 +2,9 @@
 #include <iostream>
 #include <cmath>
 #include "fmath.hpp"
-#define NDIM_D 300                // 文書,単語ベクトルの次元数
+#define NDIM_D 300              // 文書,単語ベクトルの次元数
+#define SCALE_U 1               // 文書ベクトルの事前分布の分ののスケーリング係数
+#define SCALE_V 1               // 文書ベクトルの事前分布の分ののスケーリング係数
 #define SIGMA_U 0.01            // 意味空間上の文書ベクトののランダムウォーク幅
 #define SIGMA_V 0.01            // スタイル空間上の文書ベクトルのランダムウォーク幅
 #define SIGMA_PHI 0.02          // 単語ベクトルのランダムウォーク幅
@@ -29,6 +31,7 @@ namespace cstm {
         }
         return inner;
     }
+    // do not use
     // actually, we have to normalize vector `a` which is not generated from gaussian
     double normalized_linear(double *a, double *b, int length) {
         double inner = 0;
@@ -40,6 +43,7 @@ namespace cstm {
         }
         return inner / std::sqrt(a2 * b2);
     }
+    // do not use
     double scaled_linear(double *a, double *b, int length) {
         double inner = 0;
         for (int i=0; i<length; ++i) {

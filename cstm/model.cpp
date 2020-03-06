@@ -396,6 +396,12 @@ public:
     void set_alpha0(double alpha0) {
         _cstm->_alpha0 = alpha0;
     }
+    void set_scale_u(double scale_u) {
+        _cstm->_scale_u = scale_u;
+    }
+    void set_scale_v(double scale_v) {
+        _cstm->_scale_v = scale_v;
+    }
     void set_sigma_u(double sigma_u) {
         _cstm->_sigma_u = sigma_u;
     }
@@ -798,9 +804,51 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
             }
         }
     }
-    // wcout << vocab_list[101] << endl;
     cout << "stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
     return 0;
+}
+
+// calculate expectation value of \sqrt(\phi^T \phi) and \sqrt(\eta^T \eta)
+void calc_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
+    // semantic
+    scale_coef_for_semantic = 0;
+    for (int i=0; i<semantic_vec.size(); ++i) {
+        double *vec = &semantic_vec[i][0];
+        double tmp = cstm::norm(vec, semantic_vec[i].size());
+        scale_coef_for_semantic += tmp;
+    }
+    scale_coef_for_semantic /= (double)(semantic_vec.size());
+    // stylistic
+    scale_coef_for_stylistic = 0;
+    for (int i=0; i<stylistic_vec.size(); ++i) {
+        double *vec = &stylistic_vec[i][0];
+        double tmp = cstm::norm(vec, stylistic_vec[i].size());
+        scale_coef_for_stylistic += tmp;
+    }
+    scale_coef_for_stylistic /= (double)(stylistic_vec.size());
+}
+
+void calc_max_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
+    // semantic
+    scale_coef_for_semantic = 0;
+    for (int i=0; i<semantic_vec.size(); ++i) {
+        double *vec = &semantic_vec[i][0];
+        double tmp = cstm::norm(vec, semantic_vec[i].size());
+        if (tmp > scale_coef_for_semantic) {
+            scale_coef_for_semantic = tmp;
+        }
+    }
+    // scale_coef_for_semantic /= (double)(semantic_vec.size());
+    // stylistic
+    scale_coef_for_stylistic = 0;
+    for (int i=0; i<stylistic_vec.size(); ++i) {
+        double *vec = &stylistic_vec[i][0];
+        double tmp = cstm::norm(vec, stylistic_vec[i].size());
+        if (tmp > scale_coef_for_stylistic) {
+            scale_coef_for_stylistic = tmp;
+        }
+    }
+    // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
 }
 
 // hyper parameters flags
@@ -820,8 +868,17 @@ DEFINE_string(vec_path, "./vec.bin", "saveplace of pre-trained word vector");
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(*argv);
     google::ParseCommandLineFlags(&argc, &argv, true);
+    // load pre-trained vectors
+    vector<wstring> vocab;
+    vector<vector<double>> semantic_vec, stylistic_vec;
+    load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
+    double scale_coef_for_semantic, scale_coef_for_stylistic;
+    calc_max_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
+    cout << scale_coef_for_semantic << " " << scale_coef_for_stylistic << endl;
     // set hyper parameter
     CSTMTrainer trainer;
+    trainer.set_scale_u(scale_coef_for_semantic);
+    trainer.set_scale_v(scale_coef_for_stylistic);
     trainer.set_ndim_d(FLAGS_ndim_d);
     trainer.set_sigma_u(FLAGS_sigma_u);
     trainer.set_sigma_v(FLAGS_sigma_v);
@@ -860,10 +917,6 @@ int main(int argc, char *argv[]) {
     }
     // prepare model
     trainer.prepare();
-    // read pre-trained vectors
-    vector<wstring> vocab;
-    vector<vector<double>> semantic_vec, stylistic_vec;
-    load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
     assert(trainer._ndim_d == semantic_vec[0].size());
     assert(trainer._ndim_d == stylistic_vec[0].size());
     // set pre-trained semantic/stylistic vectors

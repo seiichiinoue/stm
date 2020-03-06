@@ -33,8 +33,11 @@ namespace cstm {
         int _vocabulary_size;
         int _sum_word_frequency;        // 全単語の出現回の総和
         int _ignore_word_count;
+        // double _scale_coefficient;      // 文書ベクトルの母分布の分散のスケール係数: \sqrt(norm(\phi))
+        double _scale_u;
+        double _scale_v;
         double _sigma_u;                // 意味空間上の文書ベクトルのランダムウォーク幅
-        double _sigma_v;               // スタイル空間上の文べベクトルのランダムウォーク幅
+        double _sigma_v;                // スタイル空間上の文べベクトルのランダムウォーク幅
         double _sigma_phi;
         double _sigma_alpha0;
         double _gamma_alpha_a;
@@ -43,6 +46,9 @@ namespace cstm {
         double *_tmp_vec;
         double *_log_likelihood_first_term;
         normal_distribution<double> _standard_normal_distribution;
+        // normal_distribution<double> _normal_distribution_with_scaled_variance;
+        normal_distribution<double> _normal_distribution_with_scale_u;
+        normal_distribution<double> _normal_distribution_with_scale_v;
         // normal_distribution<double> _noise_word;
         // normal_distribution<double> _noise_doc;
         normal_distribution<double> _noise_doc_in_semantic_space;
@@ -51,6 +57,8 @@ namespace cstm {
 
         CSTM() {
             _ndim_d = NDIM_D;
+            _scale_u = SCALE_U;
+            _scale_v = SCALE_V;
             _sigma_u = SIGMA_U;
             _sigma_v = SIGMA_V;
             _sigma_phi = SIGMA_PHI;
@@ -75,6 +83,7 @@ namespace cstm {
             _sum_word_frequency = 0;
             _ignore_word_count = 0;
             _standard_normal_distribution = normal_distribution<double>(0, 1);
+            // _normal_distribution_with_scaled_variance = normal_distribution<double>(0, (double)(1.0/_scale_coefficient));
         }
         ~CSTM() {}
 
@@ -97,22 +106,25 @@ namespace cstm {
             _sum_n_k = new int[num_documents];
             _Zi = new double[num_documents];
             _log_likelihood_first_term = new double[num_documents];
+            // set prior distribution for document vectors
+            _normal_distribution_with_scale_u = normal_distribution<double>(0, (double)(1.0/_scale_u));
+            _normal_distribution_with_scale_v = normal_distribution<double>(0, (double)(1.0/_scale_v));
             // word vectors
             // for (id word_id=0; word_id<vocabulary_size; ++word_id) {
             //     _word_vectors[word_id] = generate_vector();
             // }
             // semantic vectors
             for (id word_id=0; word_id<vocabulary_size; ++word_id) {
-                _semantic_vectors[word_id] = generate_vector();
+                _semantic_vectors[word_id] = generate_doc_vec_in_semantic_space();
             }
             // stylistic vectors
             for (id word_id=0; word_id<vocabulary_size; ++word_id) {
-                _stylistic_vectors[word_id] = generate_vector();
+                _stylistic_vectors[word_id] = generate_doc_vec_in_stylistic_space();
             }
             // document vectors
             for (int doc_id=0; doc_id<num_documents; ++ doc_id) {
                 // _doc_vectors[doc_id] = generate_vector();
-                _doc_vectors_in_semantic_space[doc_id] = generate_vector();
+                _doc_vectors_in_semantic_space[doc_id] = generate_vector();  // generate vector from distribution of N(0, 1 / \sqrt(norm(\phi)))
                 _doc_vectors_in_stylistic_space[doc_id] = generate_vector();
                 _n_k[doc_id] = new int[vocabulary_size];
                 _Zi[doc_id] = 0;
@@ -173,6 +185,16 @@ namespace cstm {
         double generate_noise_from_standard_normal_distribution() {
             return _standard_normal_distribution(sampler::minstd);
         }
+        // for scaling variance of docvec generating distribution
+        // double generate_noise_from_normal_distribution_with_scaled_variance() {
+        //     return _normal_distribution_with_scaled_variance(sampler::minstd);
+        // }
+        double generate_noise_from_normal_distribution_with_scale_u() {
+            return _normal_distribution_with_scale_u(sampler::minstd);
+        }
+        double generate_noise_from_normal_distribution_with_scale_v() {
+            return _normal_distribution_with_scale_v(sampler::minstd);
+        }
         // double generate_noise_doc() {
         //     return _noise_doc(sampler::minstd);
         // }
@@ -188,7 +210,28 @@ namespace cstm {
         double *generate_vector() {
             double *vec = new double[_ndim_d];
             for (int i=0; i<_ndim_d; ++i) {
-                    vec[i] = generate_noise_from_standard_normal_distribution();
+                vec[i] = generate_noise_from_standard_normal_distribution();
+            }
+            return vec;
+        }
+        // double *generate_scaled_vector() {
+        //     double *vec = new double[_ndim_d];
+        //     for (int i=0; i<_ndim_d; ++i) {
+        //         vec[i] = generate_noise_from_normal_distribution_with_scaled_variance();
+        //     }
+        //     return vec;
+        // }
+        double *generate_doc_vec_in_semantic_space() {
+            double *vec = new double[_ndim_d];
+            for (int i=0; i<_ndim_d; ++i) {
+                vec[i] = generate_noise_from_normal_distribution_with_scale_u();
+            }
+            return vec;
+        }
+        double *generate_doc_vec_in_stylistic_space() {
+            double *vec = new double[_ndim_d];
+            for (int i=0; i<_ndim_d; ++i) {
+                vec[i] = generate_noise_from_normal_distribution_with_scale_v();
             }
             return vec;
         }
@@ -249,17 +292,19 @@ namespace cstm {
         double _compute_alpha_word(double *semantic_vec, double *stylistic_vec, double *doc_vec_in_semantic_space, double *doc_vec_in_stylistic_space, double g0) {
             assert(g0 > 0);
             // gaussian process in semantic space
-            // double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);    // overflow caused by too big ndim_d in calculation of log_pw
-            double f = cstm::normalized_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
+            double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);    // overflow caused by too big ndim_d in calculation of log_pw
+            // double f = cstm::normalized_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
             // double f = cstm::scaled_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
             // gaussian process in stylistic space
-            // double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);  // overflow caused by too big ndim_d in calculation of log_pw
-            double g = cstm::normalized_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
+            double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);  // overflow caused by too big ndim_d in calculation of log_pw
+            // double g = cstm::normalized_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
             // double g = cstm::scaled_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
             // cout << f << " " << g << endl;
             double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
             // cout << alpha << endl;
-            assert(alpha > 0 && alpha < 1e15);   // must be smaller than 1e15 to avoid oveflow
+            assert(alpha > 0);
+            if (alpha > 1e15) cout << f << " " << g << " " << alpha << endl;
+            assert(alpha < 1e15);   // must be smaller than 1e15 to avoid oveflow
             return alpha;
         }
         // compute probability: \p_d (w | \alpha_d, n_d)
