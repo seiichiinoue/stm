@@ -3,8 +3,8 @@
 #include <cmath>
 #include "fmath.hpp"
 #define NDIM_D 300              // 文書,単語ベクトルの次元数
-#define SCALE_U 1               // 文書ベクトルの事前分布の分ののスケーリング係数
-#define SCALE_V 1               // 文書ベクトルの事前分布の分ののスケーリング係数
+// #define SCALE_U 1               // 文書ベクトルの事前分布の分ののスケーリング係数
+// #define SCALE_V 1               // 文書ベクトルの事前分布の分ののスケーリング係数
 #define SIGMA_U 0.01            // 意味空間上の文書ベクトののランダムウォーク幅
 #define SIGMA_V 0.01            // スタイル空間上の文書ベクトルのランダムウォーク幅
 #define SIGMA_PHI 0.02          // 単語ベクトルのランダムウォーク幅
