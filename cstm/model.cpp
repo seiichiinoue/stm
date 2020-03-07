@@ -396,12 +396,12 @@ public:
     void set_alpha0(double alpha0) {
         _cstm->_alpha0 = alpha0;
     }
-    void set_scale_u(double scale_u) {
-        _cstm->_scale_u = scale_u;
-    }
-    void set_scale_v(double scale_v) {
-        _cstm->_scale_v = scale_v;
-    }
+    // void set_scale_u(double scale_u) {
+    //     _cstm->_scale_u = scale_u;
+    // }
+    // void set_scale_v(double scale_v) {
+    //     _cstm->_scale_v = scale_v;
+    // }
     void set_sigma_u(double sigma_u) {
         _cstm->_sigma_u = sigma_u;
     }
@@ -851,7 +851,7 @@ void calc_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<
 //     // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
 // }
 
-void normalize_vector(vector<vector<double>> &vec) {
+void normalize_vector(vector<vector<double>> &vec, double tau) {
     // calculate V^{-1} \sum_k (\phi(w_k)^T \phi(w_k))
     double Einner = 0;
     for (int k=0; k<vec.size(); ++k) {
@@ -868,6 +868,7 @@ void normalize_vector(vector<vector<double>> &vec) {
         vector<double> &tar = vec[k];
         for (int i=0; i<tar.size(); ++i) {
             tar[i] /= Einner;
+            tar[i] /= tau;
         }
     }
 }
@@ -893,16 +894,19 @@ int main(int argc, char *argv[]) {
     vector<wstring> vocab;
     vector<vector<double>> semantic_vec, stylistic_vec;
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
-    normalize_vector(semantic_vec);
-    normalize_vector(stylistic_vec);
-    double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
-    double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
-    // calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
-    cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
-    // set hyper parameter
+    // normalize word vector
+    double tau = std::sqrt(FLAGS_ndim_d);   // params; we simply set tau = \sqrt(d)
+    normalize_vector(semantic_vec, tau);
+    normalize_vector(stylistic_vec, tau);
+    // double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
+    // double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
+    // // calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
+    // cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
+    // initialize cstm trainer
     CSTMTrainer trainer;
-    trainer.set_scale_u(scale_coef_for_semantic);
-    trainer.set_scale_v(scale_coef_for_stylistic);
+    // trainer.set_scale_u(scale_coef_for_semantic);
+    // trainer.set_scale_v(scale_coef_for_stylistic);
+    // set hyper parameter
     trainer.set_ndim_d(FLAGS_ndim_d);
     trainer.set_sigma_u(FLAGS_sigma_u);
     trainer.set_sigma_v(FLAGS_sigma_v);
@@ -950,13 +954,14 @@ int main(int argc, char *argv[]) {
         bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
         added_word_count += (int)(res1 && res2);
     }
-    std::cout << "count of added word: " << added_word_count << std::endl;
+    std::cout << "count of obtained word vector: " << added_word_count << std::endl;
     // summary
     std::cout << "vocabulary size: " << trainer.get_vocabulary_size() << std::endl;
     std::cout << "ignored vocabulary size: " << trainer.get_ignored_vocabulary_size() << std::endl;
+    std::cout << "actual vocabulary size: " << trainer.get_vocabulary_size() - trainer.get_ignored_vocabulary_size() << std::endl;
     std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
-    std::cout << "dimension size: " << trainer.get_ndim_d() << std::endl;
+    std::cout << "dimension size of latent space: " << trainer.get_ndim_d() << std::endl;
     // training
     for (int i=0; i<FLAGS_epoch; ++i) {
         for (int j=0; j<10000; ++j) { //10000
