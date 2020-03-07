@@ -14,10 +14,7 @@
 !data/train/*
 
 # ignore 
-model/*
-boost_test/*
-old/*
-data/fig/*
-.dockerfile
+etc/*
+study/*
 # for debug
 cstm.dSYM/*
