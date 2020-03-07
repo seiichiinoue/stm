@@ -32,6 +32,7 @@ namespace cstm {
         return inner;
     }
     // do not use
+    // correlation coefficient
     // actually, we have to normalize vector `a` which is not generated from gaussian
     double normalized_linear(double *a, double *b, int length) {
         double inner = 0;

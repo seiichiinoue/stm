@@ -851,6 +851,27 @@ void calc_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<
 //     // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
 // }
 
+void normalize_vector(vector<vector<double>> &vec) {
+    // calculate V^{-1} \sum_k (\phi(w_k)^T \phi(w_k))
+    double Einner = 0;
+    for (int k=0; k<vec.size(); ++k) {
+        vector<double> &tar = vec[k];
+        double inner = 0;
+        for (int i=0; i<tar.size(); ++i) {
+            inner += tar[i] * tar[i];
+        }
+        Einner += inner;
+    }
+    Einner /= (double)vec.size();
+    // scaling each element with expected value of inner product
+    for (int k=0; k<vec.size(); ++k) {
+        vector<double> &tar = vec[k];
+        for (int i=0; i<tar.size(); ++i) {
+            tar[i] /= Einner;
+        }
+    }
+}
+
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
@@ -872,8 +893,11 @@ int main(int argc, char *argv[]) {
     vector<wstring> vocab;
     vector<vector<double>> semantic_vec, stylistic_vec;
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
-    double scale_coef_for_semantic, scale_coef_for_stylistic;
-    calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
+    normalize_vector(semantic_vec);
+    normalize_vector(stylistic_vec);
+    double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
+    double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
+    // calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
     cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
     // set hyper parameter
     CSTMTrainer trainer;
