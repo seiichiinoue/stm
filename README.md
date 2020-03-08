@@ -5,9 +5,9 @@
 - Using Docker (docker must installed to local environment)
 
 ```
-$ docker build -t tstmenv .
-$ docker run -it -v [local path]:/workspace/ tstmenv
-$ docker exec -it tstm /bin/bash
+$ docker build -t acstmenv .
+$ docker run -it -v [local path]:/workspace/ acstmenv
+$ docker exec -it acstm /bin/bash
 ```
 
 ## Prepare
