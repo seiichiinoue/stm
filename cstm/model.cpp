@@ -863,11 +863,12 @@ void normalize_vector(vector<vector<double>> &vec, double tau) {
         Einner += inner;
     }
     Einner /= (double)vec.size();
-    // scaling each element with expected value of inner product
+    // scaling each element with square root of expected value of inner product
+    double sqrt_inner = std::sqrt(Einner);
     for (int k=0; k<vec.size(); ++k) {
         vector<double> &tar = vec[k];
         for (int i=0; i<tar.size(); ++i) {
-            tar[i] /= Einner;
+            tar[i] /= sqrt_inner;
             tar[i] /= tau;
         }
     }
