@@ -878,11 +878,11 @@ void normalize_vector(vector<vector<double>> &vec, double tau) {
 DEFINE_int32(ndim_d, 20, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
 DEFINE_double(sigma_v, 0.02, "params: sigma_v");
-DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");    // not use
+DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");            // not use
 DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
 DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
-DEFINE_int32(ignore_word_count, 4, "number of ignore word");
+DEFINE_int32(ignore_word_count, 4, "number of ignore word");    // minimum_word_count = `ignore_word_count` + 1 
 DEFINE_int32(epoch, 100, "num of epoch");
 DEFINE_string(data_path, "../data/processed/", "directory input data located");
 DEFINE_string(model_path, "./cstm.model", "saveplace of model");

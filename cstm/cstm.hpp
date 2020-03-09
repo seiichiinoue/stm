@@ -105,7 +105,7 @@ namespace cstm {
             _sum_n_k = new int[num_documents];
             _Zi = new double[num_documents];
             _log_likelihood_first_term = new double[num_documents];
-            // scaled distribution for word vectors
+            // scaled distribution for word vectors to avoid overflow
             _normal_distribution_with_scaled_variance = normal_distribution<double>(0, (double)(1.0/std::sqrt(_ndim_d)));
             // set prior distribution for document vectors
             // _normal_distribution_with_scale_u = normal_distribution<double>(0, (double)(1.0/_scale_u));
