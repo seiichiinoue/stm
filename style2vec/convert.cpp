@@ -126,7 +126,7 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
             }
         }
     }
-    wcout << vocab_list[101] << endl;
+    // wcout << vocab_list[101] << endl;
     cout << "word_vector size: " << size << " stylistic_vector size: " << sizes << " semantic_vector size: " << sized << endl;
     return 0;
 }
@@ -134,5 +134,54 @@ int load_vector(string fname, vector<wstring> &vocab_list, vector<vector<double>
 int main() {
     vector<wstring> vocab;
     vector<vector<double>> semantic_vec, stylistic_vec;
-    load_vector("./bin/vec.bin", vocab, semantic_vec, stylistic_vec);
+    load_vector("../bin/vec_dim300.bin", vocab, semantic_vec, stylistic_vec);
+    // look size of vector
+    double scaleing_coef = 0;
+    double max_scale = 0, min_scale = 1e9; 
+    double mean = 0;
+    for (int ind=0; ind<semantic_vec.size(); ++ind) {
+        double size = 0;
+        double inner = 0;
+        vector<double> &tar = semantic_vec[ind];
+        for (int i=0; i<tar.size(); ++i) {  // tar_size = 300
+            // cout << tar[i] << endl;
+            // size += tar[i] * tar[i];
+            if (max_scale < tar[i]) max_scale = tar[i];
+            if (min_scale > tar[i]) min_scale = tar[i];
+            size += tar[i];
+            inner += tar[i] * tar[i];
+        }
+        scaleing_coef += inner;
+        // cout << "size: " << size << endl;
+        mean += (double)(size/(double)tar.size());
+    }
+    scaleing_coef = sqrt(scaleing_coef / (double)semantic_vec.size());
+    
+    cout << "all mean: " << mean / (double)semantic_vec.size() << endl;
+    cout << "all max: " << max_scale << " all min: " << min_scale << endl;
+    cout << "scaling coef: " << scaleing_coef << endl;
+    
+    // scale vector
+    for (int ind=0; ind<semantic_vec.size(); ++ind) {
+        vector<double> &tar = semantic_vec[ind];
+        for (int i=0; i<tar.size(); ++i) {  // tar_size = 300
+            tar[i] /= scaleing_coef;
+            tar[i] /= 300.0;  // dim size
+        }
+    }
+    double norm = 0;
+    double max_norm = 0;
+    for (int ind=0; ind<semantic_vec.size(); ++ind) {
+        vector<double> &tar = semantic_vec[ind];
+        double tmp = 0;
+        for (int i=0; i<tar.size(); ++i) {  // tar_size = 300
+            tmp += sqrt(tar[i] * tar[i]);
+        }
+        norm += tmp;
+        if (tmp > max_norm) max_norm = tmp;
+    }
+    norm = norm / (double)semantic_vec.size();
+    cout << "scaled norm: " << norm << endl;    // var;
+    cout << "max scaled norm: " << max_norm << endl;
+
 }
