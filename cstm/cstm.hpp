@@ -295,11 +295,9 @@ namespace cstm {
             // gaussian process in semantic space
             double f = cstm::inner(semantic_vec, doc_vec_in_semantic_space, _ndim_d);    // overflow caused by too big ndim_d in calculation of log_pw
             // double f = cstm::normalized_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
-            // double f = cstm::scaled_linear(semantic_vec, doc_vec_in_semantic_space, _ndim_d);
             // gaussian process in stylistic space
             double g = cstm::inner(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);  // overflow caused by too big ndim_d in calculation of log_pw
             // double g = cstm::normalized_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
-            // double g = cstm::scaled_linear(stylistic_vec, doc_vec_in_stylistic_space, _ndim_d);
             // cout << f << " " << g << endl;
             double alpha = _alpha0 * g0 * cstm::exp(f) * cstm::exp(g);
             // cout << "f: " << f << " g: " << g << " alpha: " << alpha << endl;

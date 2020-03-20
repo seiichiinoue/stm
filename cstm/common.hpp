@@ -44,14 +44,6 @@ namespace cstm {
         }
         return inner / std::sqrt(a2 * b2);
     }
-    // do not use
-    double scaled_linear(double *a, double *b, int length) {
-        double inner = 0;
-        for (int i=0; i<length; ++i) {
-            inner += a[i] * b[i];
-        }
-        return inner * 20 / length;
-    }
     void dump_vec(double *vec, int len) {
         std::cout << "[";
         for (int i=0; i<len-1; ++i) {
