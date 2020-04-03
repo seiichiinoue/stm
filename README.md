@@ -1,4 +1,4 @@
-# Modeling Text through Gaussian Process using Style-sensitive Word Vectors
+# Accelerated Continuous Space Topic Model
 
 ## Environment
 
