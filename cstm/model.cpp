@@ -87,7 +87,7 @@ public:
     vector<vector<vector<id>>> _dataset;
     vector<unordered_set<id>> _word_ids_in_doc;
     vector<int> _sum_word_frequency;                                // word frequency per document
-    // vector<id> _random_word_ids;
+    vector<id> _random_word_ids;
     vector<int> _random_doc_ids_for_semantic;
     vector<int> _random_doc_ids_for_stylistic;
     unordered_map<id, unordered_set<int>> _docs_containing_word;    // word -> [doc_ids]
@@ -108,25 +108,25 @@ public:
     // int _num_acceptance_doc;
     int _num_acceptance_doc_in_semantic_space;
     int _num_acceptance_doc_in_stylistic_space;
-    // int _num_acceptance_word;
+    int _num_acceptance_word;
     int _num_acceptance_alpha0;
     // times of rejection 
     // int _num_rejection_doc;
     int _num_rejection_doc_in_semantic_space;
     int _num_rejection_doc_in_stylistic_space;
-    // int _num_rejection_word;
+    int _num_rejection_word;
     int _num_rejection_alpha0;
     // times of sampling
-    // int _num_word_vec_sampled;
+    int _num_word_vec_sampled;
     // int _num_doc_vec_sampled;
     int _num_doc_vec_in_semantic_space_sampled;
     int _num_doc_vec_in_stylistic_space_sampled;
     
-    // int _random_sampling_word_index;
+    int _random_sampling_word_index;
     // int _random_sampling_doc_index;
     int _random_sampling_doc_vec_in_semantic_space_index = 0;
     int _random_sampling_doc_vec_in_stylistic_space_index = 0;
-    // unordered_map<id, int> _num_updates_word;
+    unordered_map<id, int> _num_updates_word;
     unordered_map<int, int> _num_updates_doc_vec_in_semantic_space;
     unordered_map<int, int> _num_updates_doc_vec_in_stylistic_space;
 
@@ -149,7 +149,7 @@ public:
         _ignored_vocabulary_size = 0;
         reset_statistics();
         // _random_sampling_doc_index = 0;
-        // _random_sampling_word_index = 0;
+        _random_sampling_word_index = 0;
         _random_sampling_doc_vec_in_semantic_space_index = 0;
         _random_sampling_doc_vec_in_stylistic_space_index = 0;
     }
@@ -160,16 +160,16 @@ public:
 
     void reset_statistics() {
         // _num_acceptance_doc = 0;    
-        // _num_acceptance_word = 0;
+        _num_acceptance_word = 0;
         _num_acceptance_doc_in_semantic_space = 0;
         _num_acceptance_doc_in_stylistic_space = 0;
         _num_acceptance_alpha0 = 0;
         // _num_rejection_doc = 0;
-        // _num_rejection_word = 0;
+        _num_rejection_word = 0;
         _num_rejection_doc_in_semantic_space = 0;
         _num_rejection_doc_in_stylistic_space = 0;
         _num_rejection_alpha0 = 0;
-        // _num_word_vec_sampled = 0;
+        _num_word_vec_sampled = 0;
         // _num_doc_vec_sampled = 0;
         _num_doc_vec_in_semantic_space_sampled = 0;
         _num_doc_vec_in_stylistic_space_sampled = 0;
@@ -208,15 +208,15 @@ public:
         _Zi_cache = new double[num_docs];
         // random sampling of words
         for (id word_id=0; word_id<vocabulary_size; ++word_id) {
-            // _num_updates_word[word_id] = 0;
+            _num_updates_word[word_id] = 0;
             int count = _cstm->get_word_count(word_id);
             if (count <= _cstm->get_ignore_word_count()) {
                 _ignored_vocabulary_size += 1;
                 continue;
             }
-            // _random_word_ids.push_back(word_id);
+            _random_word_ids.push_back(word_id);
         }
-        // std::shuffle(_random_word_ids.begin(), _random_word_ids.end(), sampler::mt);
+        std::shuffle(_random_word_ids.begin(), _random_word_ids.end(), sampler::mt);
         std::shuffle(_random_doc_ids_for_semantic.begin(), _random_doc_ids_for_semantic.end(), sampler::mt);
         std::shuffle(_random_doc_ids_for_stylistic.begin(), _random_doc_ids_for_stylistic.end(), sampler::mt);
     }
@@ -307,9 +307,9 @@ public:
     int get_sum_word_frequency() {
         return std::accumulate(_sum_word_frequency.begin(), _sum_word_frequency.end(), 0);
     }
-    // int get_num_word_vec_sampled() {
-    //     return _num_word_vec_sampled;
-    // }
+    int get_num_word_vec_sampled() {
+        return _num_word_vec_sampled;
+    }
     // int get_num_doc_vec_sampled() {
     //     return _num_doc_vec_sampled;
     // }
@@ -331,9 +331,9 @@ public:
     double get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() {
         return _num_acceptance_doc_in_stylistic_space / (double)(_num_acceptance_doc_in_stylistic_space + _num_rejection_doc_in_stylistic_space);
     }
-    // double get_mh_acceptance_rate_for_word_vector() {
-    //     return _num_acceptance_word / (double)(_num_acceptance_word + _num_rejection_word);
-    // }
+    double get_mh_acceptance_rate_for_word_vector() {
+        return _num_acceptance_word / (double)(_num_acceptance_word + _num_rejection_word);
+    }
     double get_mh_acceptance_rate_for_alpha0() {
         return _num_acceptance_alpha0 / (double)(_num_acceptance_alpha0 + _num_rejection_alpha0);
     }
@@ -372,6 +372,11 @@ public:
     //     std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
     //     return _new_vec_copy;
     // }
+    double *draw_semantic_vector(double *old_vec) {
+        double *new_vec = _cstm->draw_semantic_vector(old_vec);
+        std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
+        return _new_vec_copy;
+    }
     // double *draw_doc_vector(double *old_vec) {
     //     double *new_vec = _cstm->draw_doc_vector(old_vec);
     //     std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
@@ -443,7 +448,7 @@ public:
             _cstm->update_Zi(doc_id);
         }
     }
-    // do not need sampling word vectors
+    
     // void perform_mh_sampling_word() {
     //     // choose word vector for update
     //     int limit = (int)((get_vocabulary_size() - _ignored_vocabulary_size) / (double)get_num_documents());
@@ -461,6 +466,23 @@ public:
     //     }
     //     _random_sampling_word_index += limit;
     // }
+    void perform_mh_sampling_word() {
+        // choose word vector for update
+        int limit = (int)((get_vocabulary_size() - _ignored_vocabulary_size) / (double)get_num_documents());
+        if (_random_sampling_word_index + limit >= _random_word_ids.size()) {
+            std::shuffle(_random_word_ids.begin(), _random_word_ids.end(), sampler::mt);
+            _random_sampling_word_index = 0;
+        }
+        for (int i=0; i<limit; ++i) {
+            id word_id = _random_word_ids[i + _random_sampling_word_index];
+            double *old_vec = get_semantic_vector(word_id);
+            double *new_vec = draw_semantic_vector(old_vec);
+            accept_word_vector_if_needed(new_vec, old_vec, word_id);
+            _num_word_vec_sampled += 1;
+            _num_updates_word[word_id] += 1;
+        }
+        _random_sampling_word_index += limit;
+    }
     // bool accept_word_vector_if_needed(double *new_word_vec, double *old_word_vec, id word_id) {
     //     auto itr = _docs_containing_word.find(word_id);
     //     assert(itr != _docs_containing_word.end());
@@ -512,6 +534,61 @@ public:
     //     _num_rejection_word += 1;
     //     return false;
     // }
+    bool accept_word_vector_if_needed(double *new_word_vec, double *old_word_vec, id word_id) {
+        auto itr = _docs_containing_word.find(word_id);
+        assert(itr != _docs_containing_word.end());
+        unordered_set<int> &docs = itr->second;
+        assert(docs.size() > 0);
+        // likelihood of old word vec
+        double log_pw_old = 0;
+        for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
+            double old_alpha_word = _cstm->compute_alpha_word_given_doc(word_id, doc_id);
+            double old_Zi = _cstm->get_Zi(doc_id);
+            int n_k = _cstm->get_word_count_in_doc(word_id, doc_id);
+            log_pw_old += _cstm->_compute_reduced_log_probability_document(word_id, doc_id, n_k, old_Zi, old_alpha_word);
+            _old_alpha_words[doc_id] = old_alpha_word;
+        }
+        // likelihood of new word vec
+        double g0 = _cstm->get_g0_of_word(word_id);
+        double *stylistic_vec = _cstm->get_stylistic_vector(word_id);
+        double log_pw_new = 0;
+        for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
+            double *doc_vec_in_semantic_space = _cstm->get_doc_vector_in_semantic_space(doc_id);
+            double *doc_vec_in_stylistic_space = _cstm->get_doc_vector_in_stylistic_space(doc_id);
+            // double *doc_vec = _cstm->get_doc_vector(doc_id);
+            // double new_alpha_word = _cstm->_compute_alpha_word(new_word_vec, doc_vec, g0);
+            double new_alpha_word = _cstm->_compute_alpha_word(new_word_vec, stylistic_vec, doc_vec_in_semantic_space, doc_vec_in_stylistic_space, g0);
+            double old_alpha_word = _old_alpha_words[doc_id];
+            // simplify calculation of Zi
+            double old_Zi = _cstm->get_Zi(doc_id);
+            double new_Zi = old_Zi - old_alpha_word + new_alpha_word;
+            int n_k = _cstm->get_word_count_in_doc(word_id, doc_id);
+            log_pw_new += _cstm->_compute_reduced_log_probability_document(word_id, doc_id, n_k, new_Zi, new_alpha_word);
+            _Zi_cache[doc_id] = new_Zi;
+        }
+        assert(log_pw_old != 0);
+        assert(log_pw_new != 0);
+        // prior distribution
+        double log_prior_old = _cstm->compute_log_prior_vector(old_word_vec);
+        double log_prior_new = _cstm->compute_log_prior_vector(new_word_vec);
+        assert(log_prior_old != 0);
+        assert(log_prior_new != 0);
+        // acceptance rate
+        double log_acceptance_rate = log_pw_new + log_prior_new - log_pw_old - log_prior_old;
+        double acceptance_ratio = std::min(1.0, cstm::exp(log_acceptance_rate));
+        double bernoulli = sampler::uniform(0, 1);
+        if (bernoulli <= acceptance_ratio) {
+            _num_acceptance_word += 1;
+            // set new vector
+            _cstm->set_semantic_vector(word_id, new_word_vec);
+            for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
+                _cstm->set_Zi(doc_id, _Zi_cache[doc_id]);
+            }
+            return true;
+        }
+        _num_rejection_word += 1;
+        return false;
+    }
     // void perform_mh_sampling_document() {
     //     // choose doc vector for update
     //     if (_random_sampling_doc_index >= _random_doc_ids.size()) {
@@ -897,7 +974,7 @@ int main(int argc, char *argv[]) {
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
     // normalize word vector
     double tau = std::sqrt(FLAGS_ndim_d);   // params; we simply set tau = \sqrt(d)
-    normalize_vector(semantic_vec, tau);
+    // normalize_vector(semantic_vec, tau);
     normalize_vector(stylistic_vec, tau);
     // double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
     // double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
@@ -949,11 +1026,13 @@ int main(int argc, char *argv[]) {
     assert(trainer._ndim_d == semantic_vec[0].size());
     assert(trainer._ndim_d == stylistic_vec[0].size());
     // set pre-trained semantic/stylistic vectors
+    // changed: set pre-trained stylistic vectors
     int added_word_count = 0;
     for (int i=0; i<vocab.size(); ++i) {
-        bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
+        // bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
         bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
-        added_word_count += (int)(res1 && res2);
+        // added_word_count += (int)(res1 && res2);
+        added_word_count += (int)(res2);
     }
     std::cout << "count of obtained word vector: " << added_word_count << std::endl;
     // summary
@@ -968,7 +1047,7 @@ int main(int argc, char *argv[]) {
         for (int j=0; j<10000; ++j) { //10000
             trainer.perform_mh_sampling_document_vector_in_semantic_space();
             trainer.perform_mh_sampling_document_vector_in_stylistic_space();
-            // trainer.perform_mh_sampling_word();
+            trainer.perform_mh_sampling_word();
             // updating alpha0 is bottleneck
             if (j % 1000 == 0) {
                 trainer.perform_mh_sampling_alpha0();
@@ -982,7 +1061,7 @@ int main(int argc, char *argv[]) {
         std::cout << "MH acceptance:" << std::endl;
         std::cout << "    semantic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
         std::cout << "    stylistic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() << std::endl;
-        // std::cout << "    word: " << trainer.get_mh_acceptance_rate_for_word_vector() << std::endl;
+        std::cout << "    word: " << trainer.get_mh_acceptance_rate_for_word_vector() << std::endl;
         std::cout << "    alpha0: " << trainer.get_mh_acceptance_rate_for_alpha0() << std::endl;
         trainer.save(FLAGS_model_path);
         trainer.reset_statistics();

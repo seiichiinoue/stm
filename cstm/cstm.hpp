@@ -49,7 +49,7 @@ namespace cstm {
         normal_distribution<double> _normal_distribution_with_scaled_variance;
         // normal_distribution<double> _normal_distribution_with_scale_u;
         // normal_distribution<double> _normal_distribution_with_scale_v;
-        // normal_distribution<double> _noise_word;
+        normal_distribution<double> _noise_word;
         // normal_distribution<double> _noise_doc;
         normal_distribution<double> _noise_doc_in_semantic_space;
         normal_distribution<double> _noise_doc_in_stylistic_space;
@@ -172,7 +172,7 @@ namespace cstm {
                 }
                 _log_likelihood_first_term[doc_id] = log_pw;
             }
-            // _noise_word = normal_distribution<double>(0, _sigma_phi);
+            _noise_word = normal_distribution<double>(0, _sigma_phi);
             // _noise_doc = normal_distribution<double>(0, _sigma_u);
             _noise_doc_in_semantic_space = normal_distribution<double>(0, _sigma_u);
             _noise_doc_in_stylistic_space = normal_distribution<double>(0, _sigma_v);
@@ -205,9 +205,9 @@ namespace cstm {
         double generate_noise_doc_in_stylistic_space() {
             return _noise_doc_in_stylistic_space(sampler::minstd);
         }
-        // double generate_noise_word() {
-        //     return _noise_word(sampler::minstd);
-        // }
+        double generate_noise_word() {
+            return _noise_word(sampler::minstd);
+        }
         double *generate_vector() {
             double *vec = new double[_ndim_d];
             for (int i=0; i<_ndim_d; ++i) {
@@ -242,6 +242,12 @@ namespace cstm {
         //     }
         //     return _tmp_vec;
         // }
+        double *draw_semantic_vector(double *old_vec) {
+            for (int i=0; i<_ndim_d; ++i) {
+                _tmp_vec[i] = old_vec[i] + generate_noise_word();
+            }
+            return _tmp_vec;
+        }
         // double *draw_doc_vector(double *old_vec) {
         //     for (int i=0; i<_ndim_d; ++i) {
         //         _tmp_vec[i] = old_vec[i] + generate_noise_doc();
