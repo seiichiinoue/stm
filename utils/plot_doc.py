@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse, sys, os
 sys.path.append(os.getcwd())
+sys.path.append("../")
 import pycstm
 
 def plot_scatter(data, filename):
@@ -10,10 +11,10 @@ def plot_scatter(data, filename):
     fig.set_size_inches(16.0, 16.0)
     plt.clf()
     plt.scatter(data[:, 0], data[:, 1], s=20, marker="o", edgecolors="none", color="blue")
-    plt.savefig('./data/fig/'+filename+'.png')
+    plt.savefig('./fig/'+filename+'.png')
 
 if __name__ == "__main__":
-    cstm = pycstm.cstm("./model/cstm.model")
+    cstm = pycstm.cstm("../bin/cstm_new_dim20_represent.model")
     ndim_d = cstm.get_ndim_d()
     doc_vectors = np.asarray(cstm.get_doc_vectors(), dtype=np.float32)
     # print(doc_vectors)

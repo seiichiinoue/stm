@@ -19,10 +19,10 @@ def plot_words(words, ndim_vector):
                 plt.text(vector[i], vector[i+1], word, fontsize=8)
             plt.xlim(-4, 4)
             plt.ylim(-4, 4)
-            plt.savefig("./data/fig/"+"words_{}_{}.png".format(i, i+1))
+            plt.savefig("./fig/"+"words_{}_{}.png".format(i, i+1))
 
 if __name__ == "__main__":
-    cstm = pycstm.cstm("./model/cstm.model")
+    cstm = pycstm.cstm("../bin/cstm.model")
     ndim_d = cstm.get_ndim_d()
     common_words = cstm.get_high_freq_words(1000)
     plot_words(common_words, ndim_d)
