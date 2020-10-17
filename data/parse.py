@@ -13,13 +13,14 @@ def parse(path_to_html):
 
     title = soup.find("h1", class_="title").text
     author = soup.find("h2", class_="author").text
-
+    title, author = title[:120], author[:120] # because 255 byte is limit of file name in linux
     for kana in main_text.find_all(["rp","h4","rt"]):
         kana.decompose()
 
     sentences = [line.strip() for line in main_text.text.strip().splitlines()]
     print(title, author)
-
+    if not os.path.exists("./raw"):
+        os.mkdir("./raw")
     save_dir = "./raw/{}/".format(author)
 
     if not os.path.exists(save_dir):
