@@ -56,8 +56,6 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', help='directory save processed text', default='processed/')
     args = parser.parse_args()
     authors = os.listdir(args.tar_path)
-    if not os.path.exists(args.save_path):
-        os.mkdir(args.save_path)
     for author in authors:
         if author.endswith(".txt"): continue
         if not os.path.exists(args.save_path+author):
