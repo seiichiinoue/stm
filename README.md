@@ -47,7 +47,7 @@ Words in train file: 304492532
 
 ```
 $ make
-$ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -data_path=../data/main/ -vec_path=./vec.bin -model_path=./cstm.model
+$ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -num_threads=1 -data_path=../data/main/ -vec_path=./vec_dim20.bin -model_path=./cstm.model
 ```
 
 - `ndim_d` must be same to dimention size of pre-trained word vector
