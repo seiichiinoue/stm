@@ -1026,6 +1026,54 @@ void normalize_vector(vector<vector<double>> &vec, double tau) {
     }
 }
 
+void read_aozora_data(string data_path, CSTMTrainer &trainer) {
+    const char* path = data_path.c_str();
+    DIR *dp_author; dp_author = opendir(path);
+    assert (dp_author != NULL);
+    dirent* entry_author = readdir(dp_author);
+    while (entry_author != NULL){
+        const char *cstr = entry_author->d_name;
+        string author = string(cstr);
+        if (author == ".." || author == ".") {
+            entry_author = readdir(dp_author);
+            continue;
+        }
+        string tmp = data_path + author;
+        const char* path_to_file = tmp.c_str();
+        DIR *dp_file; dp_file = opendir(path_to_file);
+        assert(dp_file != NULL);
+        dirent* entry_file = readdir(dp_file);
+        while (entry_file != NULL) {
+            const char *cstr2 = entry_file->d_name;
+            string file_path = string(cstr2);
+            if (ends_with(file_path, ".txt")) {
+                // std::cout << "loading " << file_path << std::endl;
+                int doc_id = trainer.add_document(data_path + author + "/" + file_path);
+            }
+            entry_file = readdir(dp_file);
+        }
+        entry_author = readdir(dp_author);
+    }
+}
+
+void read_data(string data_path, CSTMTrainer &trainer) {
+    // read file
+    const char* path = data_path.c_str();
+    DIR *dp;
+    dp = opendir(path);
+    assert (dp != NULL);
+    dirent* entry = readdir(dp);
+    while (entry != NULL){
+        const char *cstr = entry->d_name;
+        string file_path = string(cstr);
+        if (ends_with(file_path, ".txt")) {
+            std::cout << "loading " << file_path << std::endl;
+            int doc_id = trainer.add_document(data_path + file_path);
+        }
+        entry = readdir(dp);
+    }
+}
+
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
 DEFINE_double(sigma_u, 0.02, "params: sigma_u");
@@ -1037,11 +1085,11 @@ DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
 DEFINE_int32(ignore_word_count, 4, "number of ignore word");    // minimum_word_count = `ignore_word_count` + 1 
 DEFINE_int32(epoch, 100, "num of epoch");
 DEFINE_int32(num_threads, 1, "num of threads");
-DEFINE_string(data_path, "../data/processed/", "directory input data located");
+DEFINE_string(data_path, "../data/main/", "directory input data located");
 DEFINE_string(model_path, "./cstm.model", "saveplace of model");
 DEFINE_string(vec_path, "./vec.bin", "saveplace of pre-trained word vector");
 
-int main(int argc, char *argv[]) {
+void train_given_semantic_and_stylistic_vector(int argc, char *argv[]) {
     google::InitGoogleLogging(*argv);
     google::ParseCommandLineFlags(&argc, &argv, true);
     // load pre-trained vectors
@@ -1050,16 +1098,9 @@ int main(int argc, char *argv[]) {
     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
     // normalize word vector
     double tau = std::sqrt(FLAGS_ndim_d);   // params; we simply set tau = \sqrt(d)
-    // normalize_vector(semantic_vec, tau);
+    normalize_vector(semantic_vec, tau);
     normalize_vector(stylistic_vec, tau);
-    // double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
-    // double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
-    // // calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
-    // cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
-    // initialize cstm trainer
     CSTMTrainer trainer;
-    // trainer.set_scale_u(scale_coef_for_semantic);
-    // trainer.set_scale_v(scale_coef_for_stylistic);
     // set hyper parameter
     trainer.set_ndim_d(FLAGS_ndim_d);
     trainer.set_sigma_u(FLAGS_sigma_u);
@@ -1071,45 +1112,87 @@ int main(int argc, char *argv[]) {
     trainer.set_ignore_word_count(FLAGS_ignore_word_count);
     trainer.set_num_threads(FLAGS_num_threads);
     // read file
-    const char* path = FLAGS_data_path.c_str();
-    DIR *dp_author; dp_author = opendir(path);
-    assert (dp_author != NULL);
-    dirent* entry_author = readdir(dp_author);
-    while (entry_author != NULL){
-        const char *cstr = entry_author->d_name;
-        string author = string(cstr);
-        if (author == ".." || author == ".") {
-            entry_author = readdir(dp_author);
-            continue;
-        }
-        string tmp = FLAGS_data_path + author;
-        const char* path_to_file = tmp.c_str();
-        DIR *dp_file; dp_file = opendir(path_to_file);
-        assert(dp_file != NULL);
-        dirent* entry_file = readdir(dp_file);
-        while (entry_file != NULL) {
-            const char *cstr2 = entry_file->d_name;
-            string file_path = string(cstr2);
-            if (ends_with(file_path, ".txt")) {
-                // std::cout << "loading " << file_path << std::endl;
-                int doc_id = trainer.add_document(FLAGS_data_path + author + "/" + file_path);
-            }
-            entry_file = readdir(dp_file);
-        }
-        entry_author = readdir(dp_author);
-    }
+    read_aozora_data(FLAGS_data_path, trainer);
+    // read_data(FLAGS_data_path, trainer);
     // prepare model
     trainer.prepare();
     assert(trainer._ndim_d == semantic_vec[0].size());
     assert(trainer._ndim_d == stylistic_vec[0].size());
     // set pre-trained semantic/stylistic vectors
-    // changed: set pre-trained stylistic vectors
     int added_word_count = 0;
     for (int i=0; i<vocab.size(); ++i) {
-        // bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
+        bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
         bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
-        // added_word_count += (int)(res1 && res2);
-        added_word_count += (int)(res2);
+        added_word_count += (int)(res1 && res2);
+    }
+    std::cout << "count of obtained word vector: " << added_word_count << std::endl;
+    // summary
+    std::cout << "vocabulary size: " << trainer.get_vocabulary_size() << std::endl;
+    std::cout << "ignored vocabulary size: " << trainer.get_ignored_vocabulary_size() << std::endl;
+    std::cout << "actual vocabulary size: " << trainer.get_vocabulary_size() - trainer.get_ignored_vocabulary_size() << std::endl;
+    std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
+    std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
+    std::cout << "dimension size of latent space: " << trainer.get_ndim_d() << std::endl;
+    // training
+    for (int i=0; i<FLAGS_epoch; ++i) {
+        for (int j=0; j<10000; ++j) { //10000
+            trainer.perform_mh_sampling_document_vector_in_semantic_space();
+            trainer.perform_mh_sampling_document_vector_in_stylistic_space();
+            // trainer.perform_mh_sampling_word();
+            // updating alpha0 is bottleneck
+            if (j % 1000 == 0) {
+                trainer.perform_mh_sampling_alpha0();
+            }
+        }
+        std::cout << "epoch " << i+1 << "/" << FLAGS_epoch << std::endl;
+        // logging temporary result
+        std::cout << "perplexity: " << trainer.compute_perplexity() << std::endl;
+        std::cout << "log likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
+        // logging statistics
+        std::cout << "MH acceptance:" << std::endl;
+        std::cout << "    semantic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
+        std::cout << "    stylistic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() << std::endl;
+        std::cout << "    alpha0: " << trainer.get_mh_acceptance_rate_for_alpha0() << std::endl;
+        trainer.save(FLAGS_model_path);
+        trainer.reset_statistics();
+    }
+}
+
+void train_given_stylistic_vector(int argc, char *argv[]) {
+    google::InitGoogleLogging(*argv);
+    google::ParseCommandLineFlags(&argc, &argv, true);
+    // load pre-trained vectors
+    vector<wstring> vocab;
+    vector<vector<double>> semantic_vec, stylistic_vec;
+    load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
+    // normalize word vector
+    double tau = std::sqrt(FLAGS_ndim_d);   // params; we simply set tau = \sqrt(d)
+    normalize_vector(semantic_vec, tau);
+    normalize_vector(stylistic_vec, tau);
+    // initialize cstm trainer
+    CSTMTrainer trainer;
+    // set hyper parameter
+    trainer.set_ndim_d(FLAGS_ndim_d);
+    trainer.set_sigma_u(FLAGS_sigma_u);
+    trainer.set_sigma_v(FLAGS_sigma_v);
+    trainer.set_sigma_phi(FLAGS_sigma_phi);
+    trainer.set_sigma_alpha0(FLAGS_sigma_alpha0);
+    trainer.set_gamma_alpha_a(FLAGS_gamma_alpha_a);
+    trainer.set_gamma_alpha_b(FLAGS_gamma_alpha_b);
+    trainer.set_ignore_word_count(FLAGS_ignore_word_count);
+    trainer.set_num_threads(FLAGS_num_threads);
+    // read file
+    read_aozora_data(FLAGS_data_path, trainer);
+    // read_data(FLAGS_data_path, trainer);
+    // prepare model
+    trainer.prepare();
+    assert(trainer._ndim_d == semantic_vec[0].size());
+    assert(trainer._ndim_d == stylistic_vec[0].size());
+    // set pre-trained semantic/stylistic vectors
+    int added_word_count = 0;
+    for (int i=0; i<vocab.size(); ++i) {
+        bool res = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
+        added_word_count += (int)(res);
     }
     std::cout << "count of obtained word vector: " << added_word_count << std::endl;
     // summary
@@ -1143,5 +1226,115 @@ int main(int argc, char *argv[]) {
         trainer.save(FLAGS_model_path);
         trainer.reset_statistics();
     }
+}
+
+int main(int argc, char *argv[]) {
+    train_given_semantic_and_stylistic_vector(argc, argv);
+    // train_given_stylistic_vector(argc, argv);
     return 0;
 }
+
+// int main(int argc, char *argv[]) {
+//     google::InitGoogleLogging(*argv);
+//     google::ParseCommandLineFlags(&argc, &argv, true);
+//     // load pre-trained vectors
+//     vector<wstring> vocab;
+//     vector<vector<double>> semantic_vec, stylistic_vec;
+//     load_vector(FLAGS_vec_path, vocab, semantic_vec, stylistic_vec);
+//     // normalize word vector
+//     double tau = std::sqrt(FLAGS_ndim_d);   // params; we simply set tau = \sqrt(d)
+//     // normalize_vector(semantic_vec, tau);
+//     normalize_vector(stylistic_vec, tau);
+//     // double scale_coef_for_semantic = sqrt(FLAGS_ndim_d);
+//     // double scale_coef_for_stylistic = sqrt(FLAGS_ndim_d);
+//     // // calc_scale_coefficient(semantic_vec, stylistic_vec, scale_coef_for_semantic, scale_coef_for_stylistic);
+//     // cout << "scale_u: " << scale_coef_for_semantic << " scale_v: " << scale_coef_for_stylistic << endl;
+//     // initialize cstm trainer
+//     CSTMTrainer trainer;
+//     // trainer.set_scale_u(scale_coef_for_semantic);
+//     // trainer.set_scale_v(scale_coef_for_stylistic);
+//     // set hyper parameter
+//     trainer.set_ndim_d(FLAGS_ndim_d);
+//     trainer.set_sigma_u(FLAGS_sigma_u);
+//     trainer.set_sigma_v(FLAGS_sigma_v);
+//     trainer.set_sigma_phi(FLAGS_sigma_phi);
+//     trainer.set_sigma_alpha0(FLAGS_sigma_alpha0);
+//     trainer.set_gamma_alpha_a(FLAGS_gamma_alpha_a);
+//     trainer.set_gamma_alpha_b(FLAGS_gamma_alpha_b);
+//     trainer.set_ignore_word_count(FLAGS_ignore_word_count);
+//     trainer.set_num_threads(FLAGS_num_threads);
+//     // read file
+//     const char* path = FLAGS_data_path.c_str();
+//     DIR *dp_author; dp_author = opendir(path);
+//     assert (dp_author != NULL);
+//     dirent* entry_author = readdir(dp_author);
+//     while (entry_author != NULL){
+//         const char *cstr = entry_author->d_name;
+//         string author = string(cstr);
+//         if (author == ".." || author == ".") {
+//             entry_author = readdir(dp_author);
+//             continue;
+//         }
+//         string tmp = FLAGS_data_path + author;
+//         const char* path_to_file = tmp.c_str();
+//         DIR *dp_file; dp_file = opendir(path_to_file);
+//         assert(dp_file != NULL);
+//         dirent* entry_file = readdir(dp_file);
+//         while (entry_file != NULL) {
+//             const char *cstr2 = entry_file->d_name;
+//             string file_path = string(cstr2);
+//             if (ends_with(file_path, ".txt")) {
+//                 // std::cout << "loading " << file_path << std::endl;
+//                 int doc_id = trainer.add_document(FLAGS_data_path + author + "/" + file_path);
+//             }
+//             entry_file = readdir(dp_file);
+//         }
+//         entry_author = readdir(dp_author);
+//     }
+//     // prepare model
+//     trainer.prepare();
+//     assert(trainer._ndim_d == semantic_vec[0].size());
+//     assert(trainer._ndim_d == stylistic_vec[0].size());
+//     // set pre-trained semantic/stylistic vectors
+//     // changed: set pre-trained stylistic vectors
+//     int added_word_count = 0;
+//     for (int i=0; i<vocab.size(); ++i) {
+//         // bool res1 = trainer.set_semantic_vector(vocab[i], semantic_vec[i]);
+//         bool res2 = trainer.set_stylistic_vector(vocab[i], stylistic_vec[i]);
+//         // added_word_count += (int)(res1 && res2);
+//         added_word_count += (int)(res2);
+//     }
+//     std::cout << "count of obtained word vector: " << added_word_count << std::endl;
+//     // summary
+//     std::cout << "vocabulary size: " << trainer.get_vocabulary_size() << std::endl;
+//     std::cout << "ignored vocabulary size: " << trainer.get_ignored_vocabulary_size() << std::endl;
+//     std::cout << "actual vocabulary size: " << trainer.get_vocabulary_size() - trainer.get_ignored_vocabulary_size() << std::endl;
+//     std::cout << "num of documents: " << trainer.get_num_documents() << std::endl;
+//     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
+//     std::cout << "dimension size of latent space: " << trainer.get_ndim_d() << std::endl;
+//     // training
+//     for (int i=0; i<FLAGS_epoch; ++i) {
+//         for (int j=0; j<10000; ++j) { //10000
+//             trainer.perform_mh_sampling_document_vector_in_semantic_space();
+//             trainer.perform_mh_sampling_document_vector_in_stylistic_space();
+//             trainer.perform_mh_sampling_word();
+//             // updating alpha0 is bottleneck
+//             if (j % 1000 == 0) {
+//                 trainer.perform_mh_sampling_alpha0();
+//             }
+//         }
+//         std::cout << "epoch " << i+1 << "/" << FLAGS_epoch << std::endl;
+//         // logging temporary result
+//         std::cout << "perplexity: " << trainer.compute_perplexity() << std::endl;
+//         std::cout << "log likelihood: " << trainer.compute_log_likelihood_data() << std::endl;
+//         // logging statistics
+//         std::cout << "MH acceptance:" << std::endl;
+//         std::cout << "    semantic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_semantic_space() << std::endl;
+//         std::cout << "    stylistic_doc: " << trainer.get_mh_acceptance_rate_for_doc_vector_in_stylistic_space() << std::endl;
+//         std::cout << "    word: " << trainer.get_mh_acceptance_rate_for_word_vector() << std::endl;
+//         std::cout << "    alpha0: " << trainer.get_mh_acceptance_rate_for_alpha0() << std::endl;
+//         trainer.save(FLAGS_model_path);
+//         trainer.reset_statistics();
+//     }
+//     return 0;
+// }
