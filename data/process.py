@@ -46,7 +46,6 @@ class Text(object):
                 f.write(t+'\n')
         return None
 
-    # 文節機能部の連結等の処理
     def revise(self, sentence):
         return 
 
