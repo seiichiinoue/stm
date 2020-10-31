@@ -14,5 +14,6 @@
 # ignore 
 etc/*
 study/*
+corpus/*
 # for debug
 cstm.dSYM/*
