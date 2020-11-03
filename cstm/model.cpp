@@ -1057,7 +1057,6 @@ void read_aozora_data(string data_path, CSTMTrainer &trainer) {
 }
 
 void read_data(string data_path, CSTMTrainer &trainer) {
-    // read file
     const char* path = data_path.c_str();
     DIR *dp;
     dp = opendir(path);
@@ -1112,8 +1111,8 @@ void train_given_semantic_and_stylistic_vector(int argc, char *argv[]) {
     trainer.set_ignore_word_count(FLAGS_ignore_word_count);
     trainer.set_num_threads(FLAGS_num_threads);
     // read file
-    read_aozora_data(FLAGS_data_path, trainer);
-    // read_data(FLAGS_data_path, trainer);
+    // read_aozora_data(FLAGS_data_path, trainer);
+    read_data(FLAGS_data_path, trainer);
     // prepare model
     trainer.prepare();
     assert(trainer._ndim_d == semantic_vec[0].size());
@@ -1182,8 +1181,8 @@ void train_given_stylistic_vector(int argc, char *argv[]) {
     trainer.set_ignore_word_count(FLAGS_ignore_word_count);
     trainer.set_num_threads(FLAGS_num_threads);
     // read file
-    read_aozora_data(FLAGS_data_path, trainer);
-    // read_data(FLAGS_data_path, trainer);
+    // read_aozora_data(FLAGS_data_path, trainer);
+    read_data(FLAGS_data_path, trainer);
     // prepare model
     trainer.prepare();
     assert(trainer._ndim_d == semantic_vec[0].size());
