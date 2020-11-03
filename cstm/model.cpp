@@ -68,11 +68,6 @@ void split_word_by(const wstring &str, wchar_t delim, vector<wstring> &elems) {
     }
 }
 
-// bool ends_with(const std::string& s, const std::string& suffix) {
-//     if (s.size() < suffix.size()) return false;
-//     return std::equal(std::rbegin(suffix), std::rend(suffix), std::rbegin(s));
-// }
-
 bool ends_with(const std::string& str, const std::string& suffix) {
     size_t len1 = str.size();
     size_t len2 = suffix.size();
@@ -82,9 +77,7 @@ bool ends_with(const std::string& str, const std::string& suffix) {
 class CSTMTrainer {
 public:
     CSTM *_cstm;
-    Vocab *_vocab;
-    // unordered_map<id, vector<vector<double>>> _id_to_semantic_vec;   // style2vec
-    // unordered_map<id, vector<vector<double>>> _id_to_stylistic_vec;  // style2vec
+    Vocab *_vocab;    
     vector<vector<vector<id>>> _dataset;
     vector<unordered_set<id>> _word_ids_in_doc;
     vector<int> _sum_word_frequency;                                // word frequency per document
@@ -111,27 +104,23 @@ public:
 
     // stat
     // times of acceptance in MH estimation
-    // int _num_acceptance_doc;
     int _num_acceptance_doc_in_semantic_space;
     int _num_acceptance_doc_in_stylistic_space;
     int _num_acceptance_word;
     int _num_acceptance_alpha0;
     // times of rejection 
-    // int _num_rejection_doc;
     int _num_rejection_doc_in_semantic_space;
     int _num_rejection_doc_in_stylistic_space;
     int _num_rejection_word;
     int _num_rejection_alpha0;
     // times of sampling
     int _num_word_vec_sampled;
-    // int _num_doc_vec_sampled;
     int _num_doc_vec_in_semantic_space_sampled;
     int _num_doc_vec_in_stylistic_space_sampled;
     
     int _random_sampling_word_index;
-    // int _random_sampling_doc_index;
-    int _random_sampling_doc_vec_in_semantic_space_index = 0;
-    int _random_sampling_doc_vec_in_stylistic_space_index = 0;
+    int _random_sampling_doc_vec_in_semantic_space_index;
+    int _random_sampling_doc_vec_in_stylistic_space_index;
     unordered_map<id, int> _num_updates_word;
     unordered_map<int, int> _num_updates_doc_vec_in_semantic_space;
     unordered_map<int, int> _num_updates_doc_vec_in_stylistic_space;
@@ -159,7 +148,6 @@ public:
         _num_threads = 1;
         _ignored_vocabulary_size = 0;
         reset_statistics();
-        // _random_sampling_doc_index = 0;
         _random_sampling_word_index = 0;
         _random_sampling_doc_vec_in_semantic_space_index = 0;
         _random_sampling_doc_vec_in_stylistic_space_index = 0;
@@ -170,18 +158,15 @@ public:
     }
 
     void reset_statistics() {
-        // _num_acceptance_doc = 0;    
         _num_acceptance_word = 0;
         _num_acceptance_doc_in_semantic_space = 0;
         _num_acceptance_doc_in_stylistic_space = 0;
         _num_acceptance_alpha0 = 0;
-        // _num_rejection_doc = 0;
         _num_rejection_word = 0;
         _num_rejection_doc_in_semantic_space = 0;
         _num_rejection_doc_in_stylistic_space = 0;
         _num_rejection_alpha0 = 0;
         _num_word_vec_sampled = 0;
-        // _num_doc_vec_sampled = 0;
         _num_doc_vec_in_semantic_space_sampled = 0;
         _num_doc_vec_in_stylistic_space_sampled = 0;
     }
@@ -265,7 +250,6 @@ public:
         reverse(components.begin(), components.end());
         string name = components[0], author = components[1];
         string filename = author + "_" + name;
-        // cout << filename << endl;
         _doc_filename_to_id[filename] = doc_id;
         _doc_id_to_filename[doc_id] = filename;
         return doc_id;
@@ -293,18 +277,14 @@ public:
     bool set_semantic_vector(wstring word, vector<double> vec) {
         if (!_vocab->word_exists(word)) return false;
         id word_id = _vocab->get_word_id(word);
-        // _id_to_semantic_vec[word_id] = vec;
         double* ptr = &vec[0];
-        // _cstm->_semantic_vectors[word_id] = ptr;
         _cstm->set_semantic_vector(word_id, ptr);
         return true;
     }
     bool set_stylistic_vector(wstring word, vector<double> vec) {
         if (!_vocab->word_exists(word)) return false;
         id word_id = _vocab->get_word_id(word);
-        // _id_to_stylistic_vec[word_id] = vec;
         double* ptr = &vec[0];
-        // _cstm->_stylistic_vectors[word_id] = ptr;
         _cstm->set_stylistic_vector(word_id, ptr);
         return true;
     }
@@ -331,9 +311,6 @@ public:
     int get_num_word_vec_sampled() {
         return _num_word_vec_sampled;
     }
-    // int get_num_doc_vec_sampled() {
-    //     return _num_doc_vec_sampled;
-    // }
     int get_num_doc_vec_in_semantic_space_sampled() {
         return _num_doc_vec_in_semantic_space_sampled;
     }
@@ -343,9 +320,6 @@ public:
     double get_alpha0() {
         return _cstm->_alpha0;
     }
-    // double get_mh_acceptance_rate_for_doc_vector() {
-    //     return _num_acceptance_doc / (double)(_num_acceptance_doc + _num_rejection_doc);
-    // }
     double get_mh_acceptance_rate_for_doc_vector_in_semantic_space() {
         return _num_acceptance_doc_in_semantic_space / (double)(_num_acceptance_doc_in_semantic_space + _num_rejection_doc_in_semantic_space);
     }
@@ -358,16 +332,6 @@ public:
     double get_mh_acceptance_rate_for_alpha0() {
         return _num_acceptance_alpha0 / (double)(_num_acceptance_alpha0 + _num_rejection_alpha0);
     }
-    // double *get_word_vector(id word_id) {
-    //     double *old_vec = _cstm->get_word_vector(word_id);
-    //     std::memcpy(_old_vec_copy, old_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _old_vec_copy;
-    // }
-    // double *get_doc_vector(int doc_id) {
-    //     double *old_vec = _cstm->get_doc_vector(doc_id);
-    //     std::memcpy(_old_vec_copy, old_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _old_vec_copy;
-    // }
     double *get_semantic_vector(id word_id) {
         double *old_vec = _cstm->get_semantic_vector(word_id);
         std::memcpy(_old_vec_copy, old_vec, _cstm->_ndim_d * sizeof(double));
@@ -388,21 +352,11 @@ public:
         std::memcpy(_old_vec_copy, old_vec, _cstm->_ndim_d * sizeof(double));
         return _old_vec_copy;
     }
-    // double *draw_word_vector(double *old_vec) {
-    //     double *new_vec = _cstm->draw_word_vector(old_vec);
-    //     std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _new_vec_copy;
-    // }
     double *draw_semantic_vector(double *old_vec) {
         double *new_vec = _cstm->draw_semantic_vector(old_vec);
         std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
         return _new_vec_copy;
     }
-    // double *draw_doc_vector(double *old_vec) {
-    //     double *new_vec = _cstm->draw_doc_vector(old_vec);
-    //     std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _new_vec_copy;
-    // }
     double *draw_doc_vector_in_semantic_space(double *old_vec) {
         double *new_vec = _cstm->draw_doc_vector_in_semantic_space(old_vec);
         std::memcpy(_new_vec_copy, new_vec, _cstm->_ndim_d * sizeof(double));
@@ -425,12 +379,6 @@ public:
     void set_alpha0(double alpha0) {
         _cstm->_alpha0 = alpha0;
     }
-    // void set_scale_u(double scale_u) {
-    //     _cstm->_scale_u = scale_u;
-    // }
-    // void set_scale_v(double scale_v) {
-    //     _cstm->_scale_v = scale_v;
-    // }
     void set_sigma_u(double sigma_u) {
         _cstm->_sigma_u = sigma_u;
     }
@@ -472,24 +420,6 @@ public:
             _cstm->update_Zi(doc_id);
         }
     }
-    
-    // void perform_mh_sampling_word() {
-    //     // choose word vector for update
-    //     int limit = (int)((get_vocabulary_size() - _ignored_vocabulary_size) / (double)get_num_documents());
-    //     if (_random_sampling_word_index + limit >= _random_word_ids.size()) {
-    //         std::shuffle(_random_word_ids.begin(), _random_word_ids.end(), sampler::mt);
-    //         _random_sampling_word_index = 0;
-    //     }
-    //     for (int i=0; i<limit; ++i) {
-    //         id word_id = _random_word_ids[i + _random_sampling_word_index];
-    //         double *old_vec = get_word_vector(word_id);
-    //         double *new_vec = draw_word_vector(old_vec);
-    //         accept_word_vector_if_needed(new_vec, old_vec, word_id);
-    //         _num_word_vec_sampled += 1;
-    //         _num_updates_word[word_id] += 1;
-    //     }
-    //     _random_sampling_word_index += limit;
-    // }
     void perform_mh_sampling_word() {
         // choose word vector for update
         int limit = (int)((get_vocabulary_size() - _ignored_vocabulary_size) / (double)get_num_documents());
@@ -507,57 +437,6 @@ public:
         }
         _random_sampling_word_index += limit;
     }
-    // bool accept_word_vector_if_needed(double *new_word_vec, double *old_word_vec, id word_id) {
-    //     auto itr = _docs_containing_word.find(word_id);
-    //     assert(itr != _docs_containing_word.end());
-    //     unordered_set<int> &docs = itr->second;
-    //     assert(docs.size() > 0);
-    //     // likelihood of old word vec
-    //     double log_pw_old = 0;
-    //     for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
-    //         double old_alpha_word = _cstm->compute_alpha_word_given_doc(word_id, doc_id);
-    //         double old_Zi = _cstm->get_Zi(doc_id);
-    //         int n_k = _cstm->get_word_count_in_doc(word_id, doc_id);
-    //         log_pw_old += _cstm->_compute_reduced_log_probability_document(word_id, doc_id, n_k, old_Zi, old_alpha_word);
-    //         _old_alpha_words[doc_id] = old_alpha_word;
-    //     }
-    //     // likelihood of new word vec
-    //     double g0 = _cstm->get_g0_of_word(word_id);
-    //     double log_pw_new = 0;
-    //     for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
-    //         double *doc_vec = _cstm->get_doc_vector(doc_id);
-    //         double new_alpha_word = _cstm->_compute_alpha_word(new_word_vec, doc_vec, g0);
-    //         double old_alpha_word = _old_alpha_words[doc_id];
-    //         // simplify calculation of Zi
-    //         double old_Zi = _cstm->get_Zi(doc_id);
-    //         double new_Zi = old_Zi - old_alpha_word + new_alpha_word;
-    //         int n_k = _cstm->get_word_count_in_doc(word_id, doc_id);
-    //         log_pw_new += _cstm->_compute_reduced_log_probability_document(word_id, doc_id, n_k, new_Zi, new_alpha_word);
-    //         _Zi_cache[doc_id] = new_Zi;
-    //     }
-    //     assert(log_pw_old != 0);
-    //     assert(log_pw_new != 0);
-    //     // prior distribution
-    //     double log_prior_old = _cstm->compute_log_prior_vector(old_word_vec);
-    //     double log_prior_new = _cstm->compute_log_prior_vector(new_word_vec);
-    //     assert(log_prior_old != 0);
-    //     assert(log_prior_new != 0);
-    //     // acceptance rate
-    //     double log_acceptance_rate = log_pw_new + log_prior_new - log_pw_old - log_prior_old;
-    //     double acceptance_ratio = std::min(1.0, cstm::exp(log_acceptance_rate));
-    //     double bernoulli = sampler::uniform(0, 1);
-    //     if (bernoulli <= acceptance_ratio) {
-    //         _num_acceptance_word += 1;
-    //         // set new vector
-    //         _cstm->set_word_vector(word_id, new_word_vec);
-    //         for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
-    //             _cstm->set_Zi(doc_id, _Zi_cache[doc_id]);
-    //         }
-    //         return true;
-    //     }
-    //     _num_rejection_word += 1;
-    //     return false;
-    // }
     bool accept_word_vector_if_needed(double *new_word_vec, double *old_word_vec, id word_id) {
         auto itr = _docs_containing_word.find(word_id);
         assert(itr != _docs_containing_word.end());
@@ -579,8 +458,6 @@ public:
         for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
             double *doc_vec_in_semantic_space = _cstm->get_doc_vector_in_semantic_space(doc_id);
             double *doc_vec_in_stylistic_space = _cstm->get_doc_vector_in_stylistic_space(doc_id);
-            // double *doc_vec = _cstm->get_doc_vector(doc_id);
-            // double new_alpha_word = _cstm->_compute_alpha_word(new_word_vec, doc_vec, g0);
             double new_alpha_word = _cstm->_compute_alpha_word(new_word_vec, stylistic_vec, doc_vec_in_semantic_space, doc_vec_in_stylistic_space, g0);
             double old_alpha_word = _old_alpha_words[doc_id];
             // simplify calculation of Zi
@@ -613,48 +490,6 @@ public:
         _num_rejection_word += 1;
         return false;
     }
-    // void perform_mh_sampling_document() {
-    //     // choose doc vector for update
-    //     if (_random_sampling_doc_index >= _random_doc_ids.size()) {
-    //         std::shuffle(_random_doc_ids.begin(), _random_doc_ids.end(), sampler::mt);
-    //         _random_sampling_doc_index = 0;
-    //     }
-    //     int doc_id = _random_doc_ids[_random_sampling_doc_index];
-    //     double *old_vec = get_doc_vector(doc_id);
-    //     double *new_vec = draw_doc_vector(old_vec);
-    //     accept_document_vector_if_needed(new_vec, old_vec, doc_id);
-    //     _num_doc_vec_sampled += 1;
-    //     _num_updates_doc[doc_id] += 1;
-    //     _random_sampling_doc_index += 1;
-    //     return;
-    // }
-    // bool accept_document_vector_if_needed(double *new_doc_vec, double *old_doc_vec, int doc_id) {
-    //     double original_Zi = _cstm->get_Zi(doc_id);
-    //     // likelihood of old doc vector
-    //     double log_pw_old = _cstm->compute_log_probability_document(doc_id);
-    //     // likelihood of new doc vector
-    //     _cstm->set_doc_vector(doc_id, new_doc_vec);
-    //     _cstm->update_Zi(doc_id);
-    //     double log_pw_new = _cstm->compute_log_probability_document(doc_id);
-    //     assert(log_pw_old != 0);
-    //     assert(log_pw_new != 0);
-    //     // prior distribution
-    //     double log_prior_old = _cstm->compute_log_prior_vector(old_doc_vec);
-    //     double log_prior_new = _cstm->compute_log_prior_vector(new_doc_vec);
-    //     // acceptance rate
-    //     double log_acceptance_rate = log_pw_new + log_prior_new - log_pw_old - log_prior_old;
-    //     double acceptance_ratio = std::min(1.0, cstm::exp(log_acceptance_rate));
-    //     double bernoulli = sampler::uniform(0, 1);
-    //     if (bernoulli <= acceptance_ratio) {
-    //         _num_acceptance_doc += 1;
-    //         return true;
-    //     }
-    //     // undo
-    //     _cstm->set_doc_vector(doc_id, old_doc_vec);
-    //     _cstm->set_Zi(doc_id, original_Zi);
-    //     _num_rejection_doc += 1;
-    //     return false;
-    // }
     // update document vector in semantic space
     void perform_mh_sampling_document_vector_in_semantic_space() {
         // choose doc vector for update
@@ -980,28 +815,28 @@ void calc_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<
     scale_coef_for_stylistic /= (double)(stylistic_vec.size());
 }
 
-// void calc_max_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
-//     // semantic
-//     scale_coef_for_semantic = 0;
-//     for (int i=0; i<semantic_vec.size(); ++i) {
-//         double *vec = &semantic_vec[i][0];
-//         double tmp = cstm::norm(vec, semantic_vec[i].size());
-//         if (tmp > scale_coef_for_semantic) {
-//             scale_coef_for_semantic = tmp;
-//         }
-//     }
-//     // scale_coef_for_semantic /= (double)(semantic_vec.size());
-//     // stylistic
-//     scale_coef_for_stylistic = 0;
-//     for (int i=0; i<stylistic_vec.size(); ++i) {
-//         double *vec = &stylistic_vec[i][0];
-//         double tmp = cstm::norm(vec, stylistic_vec[i].size());
-//         if (tmp > scale_coef_for_stylistic) {
-//             scale_coef_for_stylistic = tmp;
-//         }
-//     }
-//     // scale_coef_for_stylistic /= (double)(stylistic_vec.size());
-// }
+void calc_max_scale_coefficient(vector<vector<double>> &semantic_vec, vector<vector<double>> &stylistic_vec, double &scale_coef_for_semantic, double &scale_coef_for_stylistic) {
+    // semantic
+    scale_coef_for_semantic = 0;
+    for (int i=0; i<semantic_vec.size(); ++i) {
+        double *vec = &semantic_vec[i][0];
+        double tmp = cstm::norm(vec, semantic_vec[i].size());
+        if (tmp > scale_coef_for_semantic) {
+            scale_coef_for_semantic = tmp;
+        }
+    }
+    scale_coef_for_semantic /= (double)(semantic_vec.size());
+    // stylistic
+    scale_coef_for_stylistic = 0;
+    for (int i=0; i<stylistic_vec.size(); ++i) {
+        double *vec = &stylistic_vec[i][0];
+        double tmp = cstm::norm(vec, stylistic_vec[i].size());
+        if (tmp > scale_coef_for_stylistic) {
+            scale_coef_for_stylistic = tmp;
+        }
+    }
+    scale_coef_for_stylistic /= (double)(stylistic_vec.size());
+}
 
 void normalize_vector(vector<vector<double>> &vec, double tau) {
     // calculate V^{-1} \sum_k (\phi(w_k)^T \phi(w_k))
