@@ -19,7 +19,10 @@ namespace cstm {
     public:
         int **_n_k;                     // 文書ごとの単語の出現頻度
         int *_sum_n_k;                  // 文書ごとの単語の出現頻度の総和
+        int **_n_k_validation;          // テスト文書ごとの単語の出現頻度
+        int *_sum_n_k_validation;       // テスト文書ごとの単語の出現頻度
         int *_word_count;
+        int *_word_count_validation;
         double *_Zi;
         double *_g0;                    // 単語のデフォルト確率
         // double **_word_vectors;         // 単語ベクトル
@@ -37,7 +40,7 @@ namespace cstm {
         // double _scale_u;
         // double _scale_v;
         double _sigma_u;                // 意味空間上の文書ベクトルのランダムウォーク幅
-        double _sigma_v;                // スタイル空間上の文べベクトルのランダムウォーク幅
+        double _sigma_v;                // スタイル空間上の文ベクトルのランダムウォーク幅
         double _sigma_phi;
         double _sigma_alpha0;
         double _gamma_alpha_a;
@@ -73,8 +76,11 @@ namespace cstm {
             _doc_vectors_in_semantic_space = NULL;
             _doc_vectors_in_stylistic_space = NULL;
             _n_k = NULL;
+            _n_k_validation = NULL;
             _word_count = NULL;
+            _word_count_validation = NULL;
             _sum_n_k = NULL;
+            _sum_n_k_validation = NULL;
             _Zi = NULL;     // Z_d = \Sigma \alpha_{d, k}
             _log_likelihood_first_term = NULL;
             _tmp_vec = NULL;
@@ -103,6 +109,8 @@ namespace cstm {
             _doc_vectors_in_stylistic_space = new double*[num_documents];
             _n_k = new int*[num_documents];
             _sum_n_k = new int[num_documents];
+            _n_k_validation = new int*[num_documents];
+            _sum_n_k_validation = new int[num_documents];
             _Zi = new double[num_documents];
             _log_likelihood_first_term = new double[num_documents];
             // scaled distribution for word vectors to avoid overflow
@@ -116,11 +124,11 @@ namespace cstm {
             // }
             // semantic vectors; for initialization
             for (id word_id=0; word_id<vocabulary_size; ++word_id) {
-                _semantic_vectors[word_id] = generate_scaled_vector();  // we have to use scaled prior distribution
+                _semantic_vectors[word_id] = generate_scaled_vector();  // we use scaled prior distribution
             }
             // stylistic vectors; for initialization
             for (id word_id=0; word_id<vocabulary_size; ++word_id) {
-                _stylistic_vectors[word_id] = generate_scaled_vector(); // we have to use scaled prior distribution
+                _stylistic_vectors[word_id] = generate_scaled_vector(); // we use scaled prior distribution
             }
             // document vectors
             for (int doc_id=0; doc_id<num_documents; ++ doc_id) {
@@ -128,14 +136,17 @@ namespace cstm {
                 _doc_vectors_in_semantic_space[doc_id] = generate_vector();
                 _doc_vectors_in_stylistic_space[doc_id] = generate_vector();
                 _n_k[doc_id] = new int[vocabulary_size];
+                _n_k_validation[doc_id] = new int[vocabulary_size];
                 _Zi[doc_id] = 0;
                 for (id word_id=0; word_id<vocabulary_size; ++word_id) {
                     _n_k[doc_id][word_id] = 0;
+                    _n_k_validation[doc_id][word_id] = 0;
                 }
             }
             _word_count = new int[vocabulary_size];
+            _word_count_validation = new int[vocabulary_size];
         }
-        void prepare(void) {
+        void prepare(bool validation=false) {
             // basis distribution
             for (id word_id=0; word_id<_vocabulary_size; ++word_id) {
                 double sum_count = 0;
@@ -177,11 +188,35 @@ namespace cstm {
             _noise_doc_in_semantic_space = normal_distribution<double>(0, _sigma_u);
             _noise_doc_in_stylistic_space = normal_distribution<double>(0, _sigma_v);
             _noise_alpha0 = normal_distribution<double>(0, _sigma_alpha0);
+            // for validation dataset
+            if (validation) {
+                for (id word_id=0; word_id<_vocabulary_size; ++word_id) {
+                    double sum_count = 0;
+                    for (int doc_id=0; doc_id<_num_documents; ++doc_id) {
+                        int *count = _n_k_validation[doc_id];
+                        sum_count += count[word_id];
+                    }
+                    _word_count_validation[word_id] = sum_count;
+                }
+                for (int doc_id=0; doc_id<_num_documents; ++doc_id) {
+                    int sum = 0;
+                    int *count = _n_k_validation[doc_id];
+                    for (id word_id=0; word_id<_vocabulary_size; ++word_id) {
+                        sum += count[word_id];
+                    }
+                    _sum_n_k_validation[doc_id] = sum;
+                }
+            }
         }
         void add_word(id word_id, int doc_id) {
             int *count = _n_k[doc_id];
             count[word_id] += 1;
             _sum_word_frequency += 1;
+        }
+        // for validation dataset
+        void add_word_validation(id word_id, int doc_id) {
+            int *count = _n_k_validation[doc_id];
+            count[word_id] += 1;
         }
         double generate_noise_from_standard_normal_distribution() {
             return _standard_normal_distribution(sampler::minstd);
@@ -375,10 +410,42 @@ namespace cstm {
             }
             return log_pw;
         }
+        // for validation dataset
+        double compute_log_probability_validation_document_given_words(int doc_id, unordered_set<id> &word_ids) {
+            double Zi = 0;
+            for (const id word_id : word_ids) {
+                Zi += compute_alpha_word_given_doc(word_id, doc_id);
+            }
+            double sum_word_frequency = _sum_n_k_validation[doc_id];
+            double log_pw = lgamma(Zi) - lgamma(Zi + sum_word_frequency);
+            // // approximate 
+            // double log_pw = -1 * lgamma(sum_word_frequency);
+            for (const id word_id : word_ids) {
+                int count = _word_count_validation[word_id];
+                if (count <= _ignore_word_count) {
+                    continue;
+                }
+                log_pw += _compute_second_term_of_log_probability_validation_document(doc_id, word_id);
+            }
+            return log_pw;
+        }
         // approximate lower bound;  log sum -> sum log
         double _compute_second_term_of_log_probability_document(int doc_id, id word_id) {
             double alpha_k = compute_alpha_word_given_doc(word_id, doc_id);
             int n_k = get_word_count_in_doc(word_id, doc_id);
+            if (n_k > 10) {
+                return lgamma(alpha_k + n_k) - lgamma(alpha_k);
+            }
+            double tmp = 0;
+            for (int i=0; i<n_k; ++i) {
+                tmp += log(alpha_k + i);
+            }            
+            return tmp;
+        }
+        // for validation dataset
+        double _compute_second_term_of_log_probability_validation_document(int doc_id, id word_id) {
+            double alpha_k = compute_alpha_word_given_doc(word_id, doc_id);
+            int n_k = get_word_count_in_validation_doc(word_id, doc_id);
             if (n_k > 10) {
                 return lgamma(alpha_k + n_k) - lgamma(alpha_k);
             }
@@ -446,6 +513,11 @@ namespace cstm {
         }
         int get_word_count_in_doc(id word_id, int doc_id) {
             int *count = _n_k[doc_id];
+            return count[word_id];
+        }
+        // for validation dataset
+        int get_word_count_in_validation_doc(id word_id, int doc_id) {
+            int *count = _n_k_validation[doc_id];
             return count[word_id];
         }
         int get_word_count(id word_id) {
