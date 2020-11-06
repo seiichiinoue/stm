@@ -14,18 +14,13 @@ $ docker exec -it acstm /bin/bash
 
 ### Corpus
 
-- download aozorabunko data(git)
-
-```
-$ cd data/
-$ git clone --branch master --depth 1 https://github.com/aozorabunko/aozorabunko.git
-```
-
-- parse to create cleansed data and process (wakati-gaki) cleansed data
-
-```
-$ python3 parse.py && python3 process.py && extract.py
-```
+- prepare data
+    - for SGNS training: need to organize dataset in sentence-base unit
+    - for topic modeling: need to organize dataset in document-base unit
+- train validation split
+- locate data for training at `train/` and data for validation at `validation/`.
+- train SGNS with training dataset.
+- pass these location as a parameter to trainer(CSTMTrainer).
 
 ### Train Style2Vec
 
@@ -47,7 +42,7 @@ Words in train file: 304492532
 
 ```
 $ make
-$ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -num_threads=1 -data_path=../data/processed/ -vec_path=./vec_dim20.bin -model_path=./cstm.model
+$ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -num_threads=1 -data_path=../train/ -validation_data_path=../validation/ -vec_path=./vec_dim20.bin -model_path=./cstm.model
 ```
 
 - `ndim_d` must be same to dimention size of pre-trained word vector
