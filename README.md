@@ -54,7 +54,7 @@ $ cd bin/ && ./cstm -ndim_d=20 -ignore_word_count=4 -epoch=100 -num_threads=1 -d
 
 ```
 $ make distance
-$ cd bin && ./distance -load ./vec.bin
+$ cd bin && ./distance -load ./vec_dim20.bin
 ```
 
 ### Distance between documents [WIP]
