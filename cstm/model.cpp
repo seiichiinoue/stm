@@ -1009,9 +1009,9 @@ void read_validation_data(string data_path, CSTMTrainer &trainer) {
 
 // hyper parameters flags
 DEFINE_int32(ndim_d, 20, "number of hidden size");
-DEFINE_double(sigma_u, 0.02, "params: sigma_u");
-DEFINE_double(sigma_v, 0.02, "params: sigma_v");
-DEFINE_double(sigma_phi, 0.04, "params: sigma_phi");            // not use
+DEFINE_double(sigma_u, 0.01, "params: sigma_u");
+DEFINE_double(sigma_v, 0.01, "params: sigma_v");
+DEFINE_double(sigma_phi, 0.02, "params: sigma_phi");
 DEFINE_double(sigma_alpha0, 0.2, "params: sigma_alpha0");
 DEFINE_int32(gamma_alpha_a, 5, "params: gamma_alpha_a");
 DEFINE_int32(gamma_alpha_b, 500, "params: gamma_alpha_b");
@@ -1072,13 +1072,14 @@ void train_given_semantic_and_stylistic_vector(int argc, char *argv[]) {
     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
     std::cout << "dimension size of latent space: " << trainer.get_ndim_d() << std::endl;
     // training
+    int iter = 5000;    // default: 10000
     for (int i=0; i<FLAGS_epoch; ++i) {
-        for (int j=0; j<10000; ++j) { //10000
+        for (int j=0; j<iter; ++j) {
             trainer.perform_mh_sampling_document_vector_in_semantic_space();
             trainer.perform_mh_sampling_document_vector_in_stylistic_space();
             // trainer.perform_mh_sampling_word();
             // updating alpha0 is bottleneck
-            if (j % 1000 == 0) {
+            if (j % (iter/10) == 0) {
                 trainer.perform_mh_sampling_alpha0();
             }
         }
@@ -1150,13 +1151,14 @@ void train_given_stylistic_vector(int argc, char *argv[]) {
     std::cout << "num of words: " << trainer.get_sum_word_frequency() << std:: endl;
     std::cout << "dimension size of latent space: " << trainer.get_ndim_d() << std::endl;
     // training
+    int iter = 10000;
     for (int i=0; i<FLAGS_epoch; ++i) {
-        for (int j=0; j<10000; ++j) { //10000
+        for (int j=0; j<iter; ++j) {
             trainer.perform_mh_sampling_document_vector_in_semantic_space();
             trainer.perform_mh_sampling_document_vector_in_stylistic_space();
             trainer.perform_mh_sampling_word();
             // updating alpha0 is bottleneck
-            if (j % 1000 == 0) {
+            if (j % (iter/10) == 0) {
                 trainer.perform_mh_sampling_alpha0();
             }
         }
