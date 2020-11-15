@@ -63,11 +63,6 @@ public:
         auto itr = _doc_id_to_filename.find(doc_id);
         return itr->second;
     }
-    // double *get_word_vector(id word_id) {
-    //     double *original_vec = _cstm->get_word_vector(word_id);
-    //     std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _vec_copy;
-    // }
     double *get_semantic_vector(id word_id) {
         double *original_vec = _cstm->get_semantic_vector(word_id);
         std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
@@ -78,11 +73,6 @@ public:
         std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
         return _vec_copy;
     }
-    // double *get_doc_vector(int doc_id) {
-    //     double *original_vec = _cstm->get_doc_vector(doc_id);
-    //     std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
-    //     return _vec_copy;
-    // }
     double *get_doc_vector_in_semantic_space(int doc_id) {
         double *original_vec = _cstm->get_doc_vector_in_semantic_space(doc_id);
         std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
@@ -93,6 +83,18 @@ public:
         std::memcpy(_vec_copy, original_vec, _cstm->_ndim_d * sizeof(double));
         return _vec_copy;
     }
+    double calc_gaussian_process_in_semantic_space(int doc_id, id word_id) {
+        double *doc_vec = _cstm->get_doc_vector_in_semantic_space(doc_id);
+        double *semantic_vec = _cstm->get_semantic_vector(word_id);
+        double f = cstm::inner(semantic_vec, doc_vec, _cstm->_ndim_d);
+        return f;
+    }
+    double calc_gaussian_process_in_stylistic_space(int doc_id, id word_id) {
+        double *doc_vec = _cstm->get_doc_vector_in_stylistic_space(doc_id);
+        double *stylistic_vec = _cstm->get_stylistic_vector(word_id);
+        double g = cstm::inner(stylistic_vec, doc_vec, _cstm->_ndim_d);
+        return g;
+    }
     python::list _convert_vector_to_list(double *vector) {
         python::list vector_list;
         for (int i=0; i<_cstm->_ndim_d; ++i) {
@@ -100,10 +102,6 @@ public:
         }
         return vector_list;
     }
-    // python::list get_word_vector_by_word(wstring str) {
-    //     id word_id = _vocab->get_word_id(str);
-    //     return get_word_vector_by_id(word_id);
-    // }
     python::list get_semantic_vector_by_word(wstring str) {
         id word_id = _vocab->get_word_id(str);
         return get_semantic_vector_by_id(word_id);
@@ -112,10 +110,6 @@ public:
         id word_id = _vocab->get_word_id(str);
         return get_stylistic_vector_by_id(word_id);
     }
-    // python::list get_word_vector_by_id(id word_id) {
-    //     double *vector = get_word_vector(word_id);
-    //     return _convert_vector_to_list(vector);
-    // }
     python::list get_semantic_vector_by_id(id word_id) {
         double *vector = get_semantic_vector(word_id);
         return _convert_vector_to_list(vector);
@@ -124,14 +118,6 @@ public:
         double *vector = get_stylistic_vector(word_id);
         return _convert_vector_to_list(vector);
     }
-    // python::list get_word_vectors() {
-    //     python::list vector_array;
-    //     for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
-    //         double *vector = get_word_vector(word_id);
-    //         vector_array.append(_convert_vector_to_list(vector));
-    //     }
-    //     return vector_array;
-    // }
     python::list get_semantic_vectors() {
         python::list vector_array;
         for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
@@ -148,18 +134,6 @@ public:
         }
         return vector_array;
     }
-    // python::list get_doc_vectors() {
-    //     python::list vector_array;
-    //     for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
-    //         python::list vector_list;
-    //         double *vector = get_doc_vector(doc_id);
-    //         for (int i=0; i<_cstm->_ndim_d; ++i) {
-    //             vector_list.append(vector[i]);
-    //         }
-    //         vector_array.append(vector_list);
-    //     }
-    //     return vector_array;
-    // }
     python::list get_doc_vectors_in_semantic_space() {
         python::list vector_array;
         for (int doc_id=0; doc_id<get_num_documents(); ++doc_id) {
@@ -183,6 +157,54 @@ public:
             vector_array.append(vector_list);
         }
         return vector_array;
+    }
+    python::list get_semantic_high_prob_words_in_documents(int doc_id, size_t size=20) {
+        std::pair<id, int> pair;
+        multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
+        for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
+            double f = calc_gaussian_process_in_semantic_space(doc_id, word_id);
+            pair.first = word_id;
+            pair.second = f;
+            ranking.insert(pair);
+        }
+        python::list result;
+        auto itr = ranking.begin();
+        for (int n=0; n<std::min(size, ranking.size()); ++n) {
+            python::list tuple;
+            id word_id = itr->first;
+            wstring word = _vocab->word_id_to_string(word_id);
+            double f = itr->second;
+            tuple.append(word_id);
+            tuple.append(word);
+            tuple.append(f);
+            result.append(tuple);
+            itr++;
+        }
+        return result;
+    }
+    python::list get_stylistic_high_prob_words_in_documents(int doc_id, size_t size=20) {
+        std::pair<id, int> pair;
+        multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
+        for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
+            double g = calc_gaussian_process_in_stylistic_space(doc_id, word_id);
+            pair.first = word_id;
+            pair.second = g;
+            ranking.insert(pair);
+        }
+        python::list result;
+        auto itr = ranking.begin();
+        for (int n=0; n<std::min(size, ranking.size()); ++n) {
+            python::list tuple;
+            id word_id = itr->first;
+            wstring word = _vocab->word_id_to_string(word_id);
+            double g = itr->second;
+            tuple.append(word_id);
+            tuple.append(word);
+            tuple.append(g);
+            result.append(tuple);
+            itr++;
+        }
+        return result;
     }
     python::list get_high_freq_words(size_t size=100) {
         std::pair<id, int> pair;
@@ -242,57 +264,6 @@ public:
         }
         return result;
     }
-    // python::list get_words_similar_to_word(wstring target, size_t size=10) {
-    //     id target_id = _vocab->get_word_id(target);
-    //     int ndim_d = _cstm->_ndim_d;
-    //     double *target_vec = new double[ndim_d];
-    //     std::pair<id, double> pair;
-    //     multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
-    //     std::memcpy(target_vec, get_word_vector(target_id), ndim_d * sizeof(double));
-    //     python::list result;
-    //     _get_words_similar_to_raw_vector(target_vec, size, result);
-    //     return result;
-    // }
-    // python::list get_words_similar_to_vector(python::list vector_list, size_t size=10) {
-    //     int ndim_d = _cstm->_ndim_d;
-    //     assert(python::len(vector_list) == ndim_d);
-    //     double *target_vec = new double[ndim_d];
-    //     for(int i=0; i<ndim_d; ++i) {
-    //         target_vec[i] = python::extract<double>(vector_list[i]);
-    //     }
-    //     python::list result;
-    //     _get_words_similar_to_raw_vector(target_vec, size, result);
-    //     return result;
-    // }
-    // void _get_words_similar_to_raw_vector(double *target_vec, size_t size, python::list &result) {
-    //     int ndim_d = _cstm->_ndim_d;
-    //     std::pair<id, double> pair;
-    //     multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
-    //     for(id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
-    //         double *vec = get_word_vector(word_id);
-    //         double f = cstm::inner(vec, target_vec, ndim_d) / (cstm::norm(vec, ndim_d) * cstm::norm(target_vec, ndim_d));
-    //         pair.first = word_id;
-    //         pair.second = f;
-    //         ranking.insert(pair);
-    //     }
-    //     auto itr = ranking.begin();
-    //     for(int n=0; n<std::min(size, ranking.size()); ++n) {
-    //         python::list tuple;
-    //         id word_id = itr->first;
-    //         double f = itr->second;
-    //         wstring word = _vocab->word_id_to_string(word_id);
-    //         double *vector = get_word_vector(word_id);
-    //         int count = _word_frequency[word_id];
-    //         tuple.append(word_id);
-    //         tuple.append(word);
-    //         tuple.append(count);
-    //         tuple.append(_convert_vector_to_list(vector));
-    //         tuple.append(f);
-    //         result.append(tuple);
-    //         itr++;
-    //     }
-    //     delete[] target_vec;
-    // }
     python::list get_docs_similar_to_file_in_semantic_space(string filename, size_t size=10) {
         int doc_id = get_doc_id_by_filename(filename);
         int ndim_d = _cstm->_ndim_d;
@@ -406,12 +377,11 @@ BOOST_PYTHON_MODULE(pycstm) {
     .def("get_stylistic_vectors", &PyCSTM::get_stylistic_vectors)
     .def("get_doc_vectors_in_semantic_space", &PyCSTM::get_doc_vectors_in_semantic_space)
     .def("get_doc_vectors_in_stylistic_space", &PyCSTM::get_doc_vectors_in_stylistic_space)
-    // .def("get_word_vector_by_id", &PyCSTM::get_word_vector_by_id)
+    .def("get_semantic_high_prob_words_in_documents", &PyCSTM::get_semantic_high_prob_words_in_documents)
+    .def("get_stylistic_high_prob_words_in_documents", &PyCSTM::get_stylistic_high_prob_words_in_documents)
     .def("get_high_freq_words", &PyCSTM::get_high_freq_words)
     .def("get_words", &PyCSTM::get_words)
     .def("get_doc_filenames", &PyCSTM::get_doc_filenames)
-    // .def("get_words_similar_to_word", &PyCSTM::get_words_similar_to_word)
-    // .def("get_words_similar_to_vector", &PyCSTM::get_words_similar_to_vector)
     .def("get_docs_similar_to_file_in_semantic_space", &PyCSTM::get_docs_similar_to_file_in_semantic_space)
     .def("get_docs_similar_to_vector_in_semantic_space", &PyCSTM::get_docs_similar_to_vector_in_semantic_space)
     .def("get_docs_similar_to_file_in_stylistic_space", &PyCSTM::get_docs_similar_to_file_in_stylistic_space)
