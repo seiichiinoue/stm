@@ -159,9 +159,13 @@ public:
         return vector_array;
     }
     python::list get_semantic_high_prob_words_in_documents(int doc_id, size_t size=20) {
-        std::pair<id, int> pair;
+        unordered_set<id> &word_ids = _word_ids_in_doc[doc_id];
+        std::pair<id, double> pair;
         multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
-        for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
+        for (id word_id : word_ids) {
+            int count = _word_frequency[word_id];
+            // if (count < _cstm->get_ignore_word_count()) continue;
+            if (count < 100) continue;
             double f = calc_gaussian_process_in_semantic_space(doc_id, word_id);
             pair.first = word_id;
             pair.second = f;
@@ -183,9 +187,13 @@ public:
         return result;
     }
     python::list get_stylistic_high_prob_words_in_documents(int doc_id, size_t size=20) {
-        std::pair<id, int> pair;
+        unordered_set<id> &word_ids = _word_ids_in_doc[doc_id];
+        std::pair<id, double> pair;
         multiset<std::pair<id, double>, multiset_comparator<double>> ranking;
-        for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
+        for (id word_id : word_ids) {
+            int count = _word_frequency[word_id];
+            // if (count < _cstm->get_ignore_word_count()) continue;
+            if (count < 100) continue;
             double g = calc_gaussian_process_in_stylistic_space(doc_id, word_id);
             pair.first = word_id;
             pair.second = g;
@@ -238,6 +246,7 @@ public:
         python::list result;
         for (id word_id=0; word_id<get_vocabulary_size(); ++word_id) {
             int count = _word_frequency[word_id];
+            if (count < _cstm->get_ignore_word_count()) continue;
             wstring word = _vocab->word_id_to_string(word_id);
             double *semantic_vector = get_semantic_vector(word_id);
             double *stylistic_vector = get_stylistic_vector(word_id);
