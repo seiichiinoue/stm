@@ -1,13 +1,13 @@
-# Accelerated Continuous Space Topic Model
+# Style-Sensitive Continuous Space Topic Model
 
 ## Environment
 
 - Using Docker (docker must installed to local environment)
 
 ```
-$ docker build -t acstmenv .
-$ docker run -it -v [local path]:/workspace/ acstmenv
-$ docker exec -it acstm /bin/bash
+$ docker build -t cstmenv .
+$ docker run -it -v [local path]:/workspace/ cstmenv
+$ docker exec -it [container id] /bin/bash
 ```
 
 ## Prepare
