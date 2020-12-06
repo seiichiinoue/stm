@@ -620,6 +620,7 @@ template<class Archive>
         archive & cstm._num_documents;
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
+        // archive & cstm._ignore_word_count;
         archive & cstm._sigma_u;
         archive & cstm._sigma_v;
         archive & cstm._sigma_phi;
@@ -690,6 +691,7 @@ template<class Archive>
         archive & cstm._num_documents;
         archive & cstm._vocabulary_size;
         archive & cstm._sum_word_frequency;
+        // archive & cstm._ignore_word_count;
         archive & cstm._sigma_u;
         archive & cstm._sigma_v;
         archive & cstm._sigma_phi;

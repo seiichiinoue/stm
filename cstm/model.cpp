@@ -611,7 +611,7 @@ public:
         double* old_vec = _old_vec_copy_thread[thread_id];
         double* new_vec = _new_vec_copy_thread[thread_id];
         accept_document_vector_in_semantic_space_if_needed(new_vec, old_vec, doc_id);
-        _num_doc_vec_in_stylistic_space_sampled += 1;
+        _num_doc_vec_in_semantic_space_sampled += 1;
         _num_updates_doc_vec_in_semantic_space[doc_id] += 1;
     }
     bool accept_document_vector_in_semantic_space_if_needed(double *new_doc_vec, double *old_doc_vec, int doc_id) {
